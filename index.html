@@ -1,76 +1,107 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <title>Simulateur Trading Pro IA</title>
 <style>
 :root{
-  --bg:#0d1117;
+  --bg:#0e1117;
   --panel:#161b22;
-  --border:#30363d;
-  --text:#c9d1d9;
+  --card:#1f2630;
+  --text:#e6edf3;
+  --muted:#8b949e;
   --green:#2ecc71;
   --red:#e74c3c;
   --blue:#3498db;
+  --radius:14px;
 }
-*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
-body{margin:0;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden}
-#left{width:55%;display:flex;flex-direction:column}
-#right{width:45%;display:flex;flex-direction:column}
-header{position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--border);padding:12px;z-index:10}
-header .row{display:flex;justify-content:space-between;gap:10px}
-.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px}
-#tabs{display:flex;gap:8px;margin-bottom:8px}
-.tab{padding:6px 12px;border-radius:8px;cursor:pointer;background:#0b1320}
-.tab.active{background:var(--blue)}
-#search{width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1320;color:var(--text)}
-#list{flex:1;overflow:auto;padding:8px}
-.company{display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid var(--border)}
-.company:hover{background:#0b1320}
-.btn{padding:4px 8px;border-radius:6px;border:none;cursor:pointer;color:#fff}
+*{box-sizing:border-box;font-family:Inter,Segoe UI,Arial,sans-serif}
+body{margin:0;background:var(--bg);color:var(--text);overflow:hidden}
+header{display:flex;gap:10px;padding:10px;background:var(--panel)}
+header button{
+  background:var(--card);color:var(--text);
+  border:none;border-radius:10px;padding:10px 16px;
+  cursor:pointer;transition:.2s
+}
+header button.active,header button:hover{background:var(--blue)}
+#app{display:flex;height:calc(100vh - 60px)}
+#left{width:40%;display:flex;flex-direction:column;border-right:1px solid #222}
+#right{flex:1;display:flex;flex-direction:column}
+.sticky{
+  position:sticky;top:0;z-index:5;
+  background:var(--panel);padding:12px;border-bottom:1px solid #222
+}
+.stats{display:flex;gap:20px}
+.stat{flex:1;background:var(--card);padding:10px;border-radius:var(--radius)}
+.stat span{display:block;font-size:13px;color:var(--muted)}
+.stat strong{font-size:18px}
+.green{color:var(--green)}
+.red{color:var(--red)}
+#search{margin:10px;border-radius:10px;border:none;padding:10px;background:#0b0f14;color:var(--text)}
+#list{flex:1;overflow:auto;padding:10px}
+.item{
+  background:var(--card);border-radius:var(--radius);
+  padding:10px;margin-bottom:10px;
+  display:flex;justify-content:space-between;align-items:center;
+  cursor:pointer
+}
+.item.active{outline:2px solid var(--blue)}
+.item .info{flex:1}
+.item .info div{font-size:13px}
+.item .actions button{
+  margin-left:5px;border:none;border-radius:8px;
+  padding:6px 10px;cursor:pointer;color:#fff
+}
 .buy{background:var(--green)}
 .sell{background:var(--red)}
-.btn:active{transform:scale(0.95)}
-.value.green{color:var(--green)}
-.value.red{color:var(--red)}
-#chartBox{flex:1;padding:8px}
-canvas{width:100%;height:100%}
-#info{display:flex;justify-content:space-between;gap:6px}
+canvas{flex:1;background:#0b0f14}
+#graphInfo{
+  background:var(--panel);padding:10px;
+  display:flex;gap:20px;font-size:14px
+}
+#statsTab,#aiTab{display:none;flex:1;overflow:auto;padding:10px}
 table{width:100%;border-collapse:collapse}
-th,td{padding:6px;border-bottom:1px solid var(--border);text-align:right}
+th,td{padding:8px;border-bottom:1px solid #222;text-align:right}
 th:first-child,td:first-child{text-align:left}
-.aiBox{padding:10px;display:flex;flex-direction:column;gap:6px}
-.aiBox button{align-self:flex-start}
+.card{background:var(--card);border-radius:var(--radius);padding:15px;margin-bottom:15px}
+.aiAction{margin-top:10px}
+.aiAction button{
+  background:var(--blue);border:none;border-radius:10px;
+  padding:10px 16px;color:#fff;cursor:pointer
+}
 </style>
 </head>
 <body>
-<div id="left">
 <header>
-  <div class="row">
-    <div class="card">Capital: <span id="capital"></span></div>
-    <div class="card">Valeur: <span id="total"></span></div>
-    <div class="card">Gain: <span id="globalGain"></span></div>
-  </div>
+  <button id="tabTrading" class="active">Trading</button>
+  <button id="tabStats">Stats</button>
+  <button id="tabAI">IA</button>
 </header>
-<div class="card">
-  <div id="tabs">
-    <div class="tab active" data-tab="trade">Trading</div>
-    <div class="tab" data-tab="stats">Stats</div>
-    <div class="tab" data-tab="ai">IA</div>
-  </div>
-  <input id="search" placeholder="Rechercher une entreprise">
-</div>
-<div id="list"></div>
-</div>
 
-<div id="right">
-<div id="chartBox" class="card">
-  <canvas id="chart"></canvas>
-</div>
-<div id="info" class="card"></div>
+<div id="app">
+  <div id="left">
+    <div class="sticky">
+      <div class="stats">
+        <div class="stat"><span>Capital</span><strong id="capital"></strong></div>
+        <div class="stat"><span>Portefeuille</span><strong id="portfolio"></strong></div>
+        <div class="stat"><span>Gain global</span><strong id="globalGain"></strong></div>
+      </div>
+      <input id="search" placeholder="Rechercher une entreprise..." />
+    </div>
+    <div id="list"></div>
+  </div>
+
+  <div id="right">
+    <canvas id="chart"></canvas>
+    <div id="graphInfo"></div>
+    <div id="statsTab"></div>
+    <div id="aiTab"></div>
+  </div>
 </div>
 
 <script>
+(()=>{
+
 const NAMES=[
 "TechNova","DataSphere","QuantumSys","CyberLink","AIWorks","NextGen","FutureLabs","DigitalCore","SmartLogic","VisionTech",
 "EcoPower","Solaris","WindForce","HydroFlow","BioEarth",
@@ -82,203 +113,219 @@ const NAMES=[
 "LogiTrans","ShipFast","CargoNet","MoveX","SupplyPro"
 ];
 
-let state=JSON.parse(localStorage.getItem("tradingState"))||{
-  capital:2000,
-  companies:NAMES.map(n=>({
-    name:n,price:50+Math.random()*50,vol:Math.random(),shares:0,avg:0,history:[],buys:[],realized:0
-  })),
-  selected:0,
-  tab:"trade"
-};
+const state=(()=>{
+  const saved=localStorage.getItem("tradingSim");
+  if(saved) return JSON.parse(saved);
+  const companies=NAMES.map(n=>({
+    name:n,
+    price:50+Math.random()*100,
+    vol:0.02+Math.random()*0.05,
+    shares:0,
+    avg:0,
+    history:[],
+    buys:[],
+    realized:0
+  }));
+  return{capital:2000,companies,selected:0,tab:"trading"};
+})();
 
-const list=document.getElementById("list");
-const capitalEl=document.getElementById("capital");
-const totalEl=document.getElementById("total");
-const globalGainEl=document.getElementById("globalGain");
-const info=document.getElementById("info");
-const search=document.getElementById("search");
+const save=()=>localStorage.setItem("tradingSim",JSON.stringify(state));
 
-function save(){localStorage.setItem("tradingState",JSON.stringify(state));}
+const $=id=>document.getElementById(id);
 
-function updateHeader(){
-  let portfolio=state.companies.reduce((s,c)=>s+c.shares*c.price,0);
-  let realized=state.companies.reduce((s,c)=>s+c.realized,0);
-  let latent=state.companies.reduce((s,c)=>s+(c.price-c.avg)*c.shares,0);
-  capitalEl.textContent=state.capital.toFixed(2)+" €";
-  totalEl.textContent=(state.capital+portfolio).toFixed(2)+" €";
-  let g=realized+latent;
-  globalGainEl.textContent=g.toFixed(2)+" €";
-  globalGainEl.className=g>=0?"value green":"value red";
-}
+const listEl=$("list"),searchEl=$("search");
+const capitalEl=$("capital"),portfolioEl=$("portfolio"),globalGainEl=$("globalGain");
+const canvas=$("chart"),ctx=canvas.getContext("2d");
+let w,h;
 
-function renderList(){
-  list.innerHTML="";
-  let q=search.value.toLowerCase();
-  let arr=state.companies
-    .filter(c=>c.name.toLowerCase().includes(q))
-    .sort((a,b)=>b.shares-a.shares);
-  arr.forEach(c=>{
-    let gain=(c.price-c.avg)*c.shares;
-    let row=document.createElement("div");
-    row.className="company";
-    row.innerHTML=`
-      <div>
-        <strong>${c.name}</strong><br>
-        ${c.price.toFixed(2)} €
-      </div>
-      <div class="${gain>=0?"value green":"value red"}">${gain.toFixed(2)} €</div>
-      <div>${c.shares}</div>
-      <div>
-        <button class="btn buy">Acheter</button>
-        <button class="btn sell">Vendre</button>
-      </div>`;
-    row.onclick=()=>{state.selected=state.companies.indexOf(c)};
-    row.querySelector(".buy").onclick=e=>{e.stopPropagation();buy(c)};
-    row.querySelector(".sell").onclick=e=>{e.stopPropagation();sell(c)};
-    list.appendChild(row);
+const resize=()=>{w=canvas.width=canvas.clientWidth;h=canvas.height=canvas.clientHeight};
+window.addEventListener("resize",resize);resize();
+
+const current=()=>state.companies[state.selected];
+
+function updatePrices(){
+  state.companies.forEach(c=>{
+    const change=(Math.random()-0.5)*c.vol*c.price;
+    c.price=Math.max(0.1,c.price+change);
+    c.history.push(c.price);
+    if(c.history.length>500)c.history.shift();
   });
 }
 
 function buy(c){
-  if(state.capital>=c.price){
-    state.capital-=c.price;
-    c.avg=(c.avg*c.shares+c.price)/(c.shares+1);
-    c.shares++;
-    c.buys.push({price:c.price,index:c.history.length});
-    save();
-  }
+  if(state.capital<c.price)return;
+  state.capital-=c.price;
+  c.avg=(c.avg*c.shares+c.price)/(c.shares+1);
+  c.shares++;
+  c.buys.push({price:c.price,index:c.history.length});
 }
 
 function sell(c){
-  if(c.shares>0){
-    state.capital+=c.price;
-    c.realized+=(c.price-c.avg);
-    c.shares--;
-    if(c.shares===0)c.avg=0;
-    save();
-  }
+  if(c.shares<=0)return;
+  state.capital+=c.price;
+  c.shares--;
+  c.realized+=c.price-c.avg;
+  if(c.shares===0)c.avg=0;
 }
 
-setInterval(()=>{
-  state.companies.forEach(c=>{
-    let delta=(Math.random()-0.5)*c.vol;
-    c.price=Math.max(1,c.price*(1+delta));
-    c.history.push(c.price);
-    if(c.history.length>200)c.history.shift();
-  });
-  updateHeader();
-  renderList();
-  drawChart();
-  renderInfo();
-},450);
+function renderList(){
+  const q=searchEl.value.toLowerCase();
+  listEl.innerHTML="";
+  state.companies
+    .filter(c=>c.name.toLowerCase().includes(q))
+    .sort((a,b)=>b.shares-a.shares)
+    .forEach((c,i)=>{
+      const idx=state.companies.indexOf(c);
+      const latent=(c.price-c.avg)*c.shares;
+      const div=document.createElement("div");
+      div.className="item"+(idx===state.selected?" active":"");
+      div.innerHTML=`
+        <div class="info">
+          <strong>${c.name}</strong>
+          <div>Prix: ${c.price.toFixed(2)} €</div>
+          <div>Parts: ${c.shares}</div>
+          <div class="${latent>=0?"green":"red"}">${latent.toFixed(2)} €</div>
+        </div>
+        <div class="actions">
+          <button class="buy">+</button>
+          <button class="sell">-</button>
+        </div>`;
+      div.onclick=()=>state.selected=idx;
+      div.querySelector(".buy").onclick=e=>{e.stopPropagation();buy(c)};
+      div.querySelector(".sell").onclick=e=>{e.stopPropagation();sell(c)};
+      listEl.appendChild(div);
+    });
+}
 
-const canvas=document.getElementById("chart");
-const ctx=canvas.getContext("2d");
+function renderTop(){
+  const port=state.companies.reduce((s,c)=>s+c.shares*c.price,0);
+  const realized=state.companies.reduce((s,c)=>s+c.realized,0);
+  const latent=state.companies.reduce((s,c)=>s+(c.price-c.avg)*c.shares,0);
+  capitalEl.textContent=state.capital.toFixed(2)+" €";
+  portfolioEl.textContent=(state.capital+port).toFixed(2)+" €";
+  const g=realized+latent;
+  globalGainEl.textContent=g.toFixed(2)+" €";
+  globalGainEl.className=g>=0?"green":"red";
+}
 
-function drawChart(){
-  let c=state.companies[state.selected];
-  if(!c)return;
-  let w=canvas.width=canvas.clientWidth;
-  let h=canvas.height=canvas.clientHeight;
-  let data=c.history.slice(-60);
-  if(data.length<2)return;
-  let min=Math.min(...data),max=Math.max(...data);
-  let pad=(max-min)*0.1||1;
-  min-=pad;max+=pad;
+function renderChart(){
   ctx.clearRect(0,0,w,h);
+  const c=current();
+  const data=c.history.slice(-60);
+  if(data.length<2)return;
+  const min=Math.min(...data),max=Math.max(...data);
+  const pad=(max-min)*0.2||1;
+  const lo=min-pad,hi=max+pad;
   ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--blue');
   ctx.beginPath();
   data.forEach((p,i)=>{
-    let x=i/(data.length-1)*w;
-    let y=h-(p-min)/(max-min)*h;
+    const x=i/(data.length-1)*w;
+    const y=h-(p-lo)/(hi-lo)*h;
     if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
   });
   ctx.stroke();
-  let y=h-(c.price-min)/(max-min)*h;
-  ctx.strokeStyle="#888";
-  ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();
-  ctx.fillStyle="green";
+
+  const yCur=h-(c.price-lo)/(hi-lo)*h;
+  ctx.strokeStyle="#555";
+  ctx.beginPath();ctx.moveTo(0,yCur);ctx.lineTo(w,yCur);ctx.stroke();
+
   c.buys.forEach(b=>{
-    if(b.index>=c.history.length-60){
-      let i=b.index-(c.history.length-60);
-      let x=i/(data.length-1)*w;
-      let yb=h-(b.price-min)/(max-min)*h;
-      ctx.beginPath();ctx.arc(x,yb,4,0,Math.PI*2);ctx.fill();
+    const idx=b.index-(c.history.length-data.length);
+    if(idx>=0&&idx<data.length){
+      const x=idx/(data.length-1)*w;
+      const y=h-(b.price-lo)/(hi-lo)*h;
+      ctx.fillStyle="green";
+      ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();
     }
   });
 }
 
-function renderInfo(){
-  let c=state.companies[state.selected];
-  let gain=(c.price-c.avg)*c.shares;
-  info.innerHTML=`
+function renderGraphInfo(){
+  const c=current();
+  const latent=(c.price-c.avg)*c.shares;
+  $("graphInfo").innerHTML=`
     <div>${c.name}</div>
-    <div>${c.price.toFixed(2)} €</div>
-    <div>${c.avg.toFixed(2)} €</div>
-    <div>${c.shares}</div>
-    <div class="${gain>=0?"value green":"value red"}">${gain.toFixed(2)} €</div>`;
+    <div>Prix: ${c.price.toFixed(2)} €</div>
+    <div>Moyen: ${c.avg.toFixed(2)} €</div>
+    <div>Parts: ${c.shares}</div>
+    <div class="${latent>=0?"green":"red"}">${latent.toFixed(2)} €</div>`;
 }
 
-search.oninput=renderList;
-document.querySelectorAll(".tab").forEach(t=>{
-  t.onclick=()=>{
-    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
-    t.classList.add("active");
-    state.tab=t.dataset.tab;
-    if(state.tab==="stats")renderStats();
-    if(state.tab==="ai")renderAI();
-  };
-});
-
 function renderStats(){
-  list.innerHTML="";
-  let table=document.createElement("table");
-  table.innerHTML="<tr><th>Entreprise</th><th>Réalisé</th><th>Latent</th><th>Total</th></tr>";
-  state.companies
-    .map(c=>{
-      let latent=(c.price-c.avg)*c.shares;
-      return {...c,latent,total:latent+c.realized};
-    })
-    .sort((a,b)=>b.total-a.total)
-    .forEach(c=>{
-      table.innerHTML+=`<tr>
-        <td>${c.name}</td>
-        <td>${c.realized.toFixed(2)}</td>
-        <td>${c.latent.toFixed(2)}</td>
-        <td>${c.total.toFixed(2)}</td>
-      </tr>`;
-    });
-  list.appendChild(table);
+  const div=$("statsTab");
+  let rows=state.companies.map(c=>{
+    const latent=(c.price-c.avg)*c.shares;
+    const total=c.realized+latent;
+    return{c,latent,total};
+  }).sort((a,b)=>b.total-a.total);
+  div.innerHTML=`<table>
+    <tr><th>Entreprise</th><th>Réalisé</th><th>Latent</th><th>Total</th></tr>
+    ${rows.map(r=>`
+      <tr>
+        <td>${r.c.name}</td>
+        <td class="${r.c.realized>=0?"green":"red"}">${r.c.realized.toFixed(2)}</td>
+        <td class="${r.latent>=0?"green":"red"}">${r.latent.toFixed(2)}</td>
+        <td class="${r.total>=0?"green":"red"}">${r.total.toFixed(2)}</td>
+      </tr>`).join("")}
+  </table>`;
 }
 
 function renderAI(){
-  list.innerHTML="";
-  let c=state.companies[state.selected];
-  let hist=c.history.slice(-10);
-  let slope=(hist[hist.length-1]-hist[0])/hist.length;
-  let vol=Math.abs(slope)*100;
-  let momentum=slope>0?"Haussière":"Baissière";
-  let suggestion=slope>0.01?"ACHETER":slope<-0.01?"VENDRE":"ATTENDRE";
-  let box=document.createElement("div");
-  box.className="aiBox";
-  box.innerHTML=`
-    <strong>${c.name}</strong>
-    Suggestion: ${suggestion}<br>
-    Hausse estimée: ${(slope*100).toFixed(2)} %<br>
-    Confiance: ${(50+Math.min(50,vol)).toFixed(0)} %<br>
-    Risque: ${vol.toFixed(2)}<br>
-    Tendance: ${momentum}<br>
-    Volatilité: ${c.vol.toFixed(2)}<br>
-    Momentum: ${slope.toFixed(4)}<br>
-    <em>Analyse basée sur dynamique récente.</em>
-    <button class="btn buy">Acheter la suggestion</button>`;
-  box.querySelector("button").onclick=()=>buy(c);
-  list.appendChild(box);
+  const c=current();
+  const div=$("aiTab");
+  const h=c.history.slice(-10);
+  const slope=(h[h.length-1]-h[0])/(h.length||1);
+  const vol=Math.abs(slope)/(c.price||1);
+  let action="ATTENDRE";
+  if(slope>0.02)action="ACHETER";
+  if(slope<-0.02)action="VENDRE";
+  div.innerHTML=`
+    <div class="card">
+      <h3>${c.name}</h3>
+      <p>Suggestion: <strong>${action}</strong></p>
+      <p>Hausse estimée: ${(slope*100).toFixed(2)}%</p>
+      <p>Risque: ${(vol*100).toFixed(1)}</p>
+      <p>Tendance: ${slope>=0?"Haussière":"Baissière"}</p>
+      <p>Momentum: ${(slope*50).toFixed(2)}</p>
+      <p>Analyse basée sur la dynamique récente.</p>
+      <div class="aiAction">
+        <button>Acheter la suggestion</button>
+      </div>
+    </div>`;
+  div.querySelector("button").onclick=()=>buy(c);
 }
 
-updateHeader();
-renderList();
-renderInfo();
+function render(){
+  renderTop();
+  renderList();
+  renderChart();
+  renderGraphInfo();
+  if(state.tab==="stats")renderStats();
+  if(state.tab==="ai")renderAI();
+  save();
+}
+
+setInterval(()=>{updatePrices();render()},450);
+
+$("tabTrading").onclick=()=>{
+  state.tab="trading";
+  $("statsTab").style.display="none";
+  $("aiTab").style.display="none";
+};
+$("tabStats").onclick=()=>{
+  state.tab="stats";
+  $("statsTab").style.display="block";
+  $("aiTab").style.display="none";
+};
+$("tabAI").onclick=()=>{
+  state.tab="ai";
+  $("statsTab").style.display="none";
+  $("aiTab").style.display="block";
+};
+
+render();
+
+})();
 </script>
 </body>
 </html>
