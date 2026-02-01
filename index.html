@@ -44,6 +44,18 @@ canvas{background:#0b1020;border-radius:12px;max-width:100%;max-height:100%}
 .details{display:flex;justify-content:space-around;margin-top:8px}
 .stats,.ai{padding:14px;overflow:auto;width:100%}
 .ai-card{background:var(--card);padding:12px;border-radius:12px;margin-bottom:12px}
+.ai button{
+  margin-top:10px;
+  padding:10px;
+  width:100%;
+  border:none;
+  border-radius:10px;
+  background:var(--green);
+  color:#000;
+  font-weight:bold;
+  cursor:pointer;
+}
+.ai button:hover{filter:brightness(1.1)}
 </style>
 </head>
 <body>
@@ -53,11 +65,9 @@ canvas{background:#0b1020;border-radius:12px;max-width:100%;max-height:100%}
     <div class="row"><span>Portefeuille</span><span id="portfolio"></span></div>
     <div class="row"><span>Gain global</span><span id="globalGain"></span></div>
   </div>
-
   <div class="search">
     <input id="search" placeholder="Rechercher une entreprise">
   </div>
-
   <div class="list" id="companyList"></div>
 </div>
 
@@ -118,6 +128,7 @@ let state=JSON.parse(localStorage.getItem("tradingState"))||{
 
 let selected=0;
 let search="";
+let bestIndex=0;
 const MAX_POINTS=60;
 const $=id=>document.getElementById(id);
 const fmt=v=>v.toFixed(2)+" €";
@@ -152,6 +163,41 @@ function sell(i){
   }
 }
 
+function aiAnalysis(){
+  let ranked=[...state.companies].map((c,i)=>{
+    let s=c.history.length>10?
+      (c.history.slice(-5).reduce((a,b)=>a+b,0)/5-
+       c.history.slice(-10,-5).reduce((a,b)=>a+b,0)/5):0;
+    return {...c,score:s,index:i};
+  }).sort((a,b)=>b.score-a.score);
+
+  bestIndex=ranked[0].index;
+
+  $("aiMain").innerHTML=`
+    <b>Suggestion principale</b><br><br>
+    ${ranked[0].name}<br>
+    Tendance estimée :
+    <span class="${ranked[0].score>=0?"green":"red"}">
+      ${(ranked[0].score*100).toFixed(2)}%
+    </span>
+    <button onclick="window.buyFromIA()">Acheter 1 part maintenant</button>
+  `;
+
+  $("aiList").innerHTML="<b>Classement prédictif</b><br><br>"+
+    ranked.slice(0,10).map(c=>
+      `${c.name}
+       <span class="${c.score>=0?"green":"red"}">
+       ${(c.score*100).toFixed(2)}%
+       </span>`
+    ).join("<br>");
+}
+
+window.buyFromIA=()=>{
+  buy(bestIndex);
+  selected=bestIndex;
+  render();
+};
+
 function renderSidebar(){
   $("companyList").innerHTML="";
   [...state.companies]
@@ -159,7 +205,7 @@ function renderSidebar(){
     .sort((a,b)=>b.shares-a.shares)
     .forEach(c=>{
       let i=state.companies.indexOf(c);
-      let latent=(c.price-c.avg)*c.shares;
+      let l=(c.price-c.avg)*c.shares;
       let div=document.createElement("div");
       div.className="company"+(i===selected?" active":"");
       div.onclick=()=>{selected=i;render()};
@@ -167,7 +213,7 @@ function renderSidebar(){
       <div class="top"><span>${c.name}</span><span>${fmt(c.price)}</span></div>
       <div class="bottom">
         <span>${c.shares} parts</span>
-        <span class="${latent>=0?"green":"red"}">${fmt(latent)}</span>
+        <span class="${l>=0?"green":"red"}">${fmt(l)}</span>
         <div class="btns">
           <button class="buy">+</button>
           <button class="sell">−</button>
@@ -239,22 +285,13 @@ function renderStats(){
   }).join("");
 }
 
-function aiAnalysis(){
-  let ranked=[...state.companies].map(c=>{
-    let s=c.history.length>10?
-      (c.history.slice(-5).reduce((a,b)=>a+b,0)/5-
-       c.history.slice(-10,-5).reduce((a,b)=>a+b,0)/5):0;
-    return {...c,score:s};
-  }).sort((a,b)=>b.score-a.score);
-  $("aiMain").innerHTML=`<b>Suggestion</b><br>${ranked[0].name} haussier`;
-  $("aiList").innerHTML=ranked.slice(0,10).map(c=>
-    `${c.name} <span class="${c.score>=0?"green":"red"}">
-    ${c.score.toFixed(2)}</span>`).join("<br>");
-}
-
 function render(){
-  renderHeader();renderSidebar();renderDetails();
-  renderChart();renderStats();aiAnalysis();
+  renderHeader();
+  renderSidebar();
+  renderDetails();
+  renderChart();
+  renderStats();
+  aiAnalysis();
 }
 
 $("search").oninput=e=>{search=e.target.value.toLowerCase();render()};
@@ -263,7 +300,8 @@ document.querySelectorAll(".tabs button").forEach(b=>{
   b.onclick=()=>{
     document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));
     document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
-    b.classList.add("active");$(b.dataset.tab).classList.add("active");
+    b.classList.add("active");
+    $(b.dataset.tab).classList.add("active");
   };
 });
 
