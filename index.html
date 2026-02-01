@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Simulateur de Trading</title>
+<title>Simulateur de Trading + IA</title>
 <style>
 :root{
   --bg:#0f1420;--panel:#161d2e;--card:#1c2540;
@@ -37,10 +37,10 @@ body{margin:0;background:var(--bg);color:var(--text);display:flex;height:100vh;o
 .chartWrap{flex:1;display:flex;flex-direction:column;padding:10px}
 canvas{background:#0b1020;border-radius:12px;max-width:100%;max-height:100%}
 .details{display:flex;justify-content:space-around;margin-top:8px}
-.stats{padding:10px;overflow:auto;width:100%}
-table{width:100%;border-collapse:collapse}
-th,td{padding:6px;border-bottom:1px solid #222;text-align:right}
-th:first-child,td:first-child{text-align:left}
+.stats,.ai{padding:14px;overflow:auto;width:100%}
+.ai h2{margin-top:0}
+.ai-card{background:var(--card);padding:12px;border-radius:12px;margin-bottom:12px}
+.ai strong{font-size:18px}
 </style>
 </head>
 <body>
@@ -57,6 +57,7 @@ th:first-child,td:first-child{text-align:left}
   <div class="tabs">
     <button class="active" data-tab="trade">Trading</button>
     <button data-tab="stats">Stats</button>
+    <button data-tab="ai">IA</button>
   </div>
 
   <div class="view active" id="trade">
@@ -76,11 +77,18 @@ th:first-child,td:first-child{text-align:left}
       </table>
     </div>
   </div>
+
+  <div class="view" id="ai">
+    <div class="ai">
+      <h2>Conseiller IA</h2>
+      <div class="ai-card" id="aiMain"></div>
+      <div class="ai-card" id="aiList"></div>
+    </div>
+  </div>
 </div>
 
 <script>
 (()=>{
-
 const NAMES=[
 "TechNova","DataSphere","QuantumSys","CyberLink","AIWorks","NextGen",
 "FutureLabs","DigitalCore","SmartLogic","VisionTech",
@@ -99,21 +107,15 @@ let state=JSON.parse(localStorage.getItem("tradingState"))||{
     name:n,
     price:50+Math.random()*100,
     vol:0.5+Math.random()*1.5,
-    shares:0,
-    avg:0,
-    history:[],
-    buys:[],
-    realized:0
+    shares:0,avg:0,history:[],buys:[],realized:0
   }))
 };
 
 let selected=0;
 const MAX_POINTS=60;
-
 const $=id=>document.getElementById(id);
 const fmt=v=>v.toFixed(2)+" €";
-
-function save(){localStorage.setItem("tradingState",JSON.stringify(state))}
+const save=()=>localStorage.setItem("tradingState",JSON.stringify(state));
 
 function updatePrices(){
   state.companies.forEach(c=>{
@@ -146,6 +148,38 @@ function sell(i){
   }
 }
 
+function trendScore(c){
+  if(c.history.length<10)return 0;
+  let a=c.history.slice(-5).reduce((a,b)=>a+b,0)/5;
+  let b=c.history.slice(-10,-5).reduce((a,b)=>a+b,0)/5;
+  return (a-b)/b;
+}
+
+function aiAnalysis(){
+  let list=[...state.companies].map(c=>{
+    let t=trendScore(c);
+    return {...c,score:t};
+  }).sort((a,b)=>b.score-a.score);
+
+  let best=list[0];
+  let worst=list[list.length-1];
+
+  $("aiMain").innerHTML=`
+    <strong>Suggestion principale</strong><br><br>
+    ${best.name} → <span class="green">Probabilité haussière</span><br>
+    Tendance estimée : ${(best.score*100).toFixed(2)}%<br><br>
+    ${best.score>0.01?"Recommandation : ACHETER":"Observation prudente"}
+  `;
+
+  $("aiList").innerHTML="<strong>Classement prédictif (court terme)</strong><br><br>"+
+    list.slice(0,10).map(c=>
+      `${c.name} :
+      <span class="${c.score>=0?'green':'red'}">
+      ${(c.score*100).toFixed(2)}%
+      </span>`
+    ).join("<br>");
+}
+
 function renderSidebar(){
   $("companyList").innerHTML="";
   state.companies.forEach((c,i)=>{
@@ -173,8 +207,7 @@ function renderSidebar(){
 }
 
 function renderHeader(){
-  let portfolio=state.capital;
-  let realized=0,latent=0;
+  let portfolio=state.capital,realized=0,latent=0;
   state.companies.forEach(c=>{
     portfolio+=c.price*c.shares;
     realized+=c.realized;
@@ -183,9 +216,8 @@ function renderHeader(){
   $("capital").textContent=fmt(state.capital);
   $("portfolio").textContent=fmt(portfolio);
   let g=realized+latent;
-  let el=$("globalGain");
-  el.textContent=fmt(g);
-  el.className=g>=0?"green":"red";
+  $("globalGain").textContent=fmt(g);
+  $("globalGain").className=g>=0?"green":"red";
 }
 
 function renderDetails(){
@@ -199,36 +231,31 @@ function renderDetails(){
 }
 
 function renderChart(){
-  const canvas=$("chart"),ctx=canvas.getContext("2d");
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const ctx=$("chart").getContext("2d");
+  ctx.clearRect(0,0,800,400);
   let c=state.companies[selected];
-  let h=c.history;
-  if(h.length<2)return;
+  let h=c.history;if(h.length<2)return;
   let min=Math.min(...h),max=Math.max(...h);
-  let pad=(max-min)*0.1||1;
-  min-=pad;max+=pad;
-  const xStep=canvas.width/(MAX_POINTS-1);
+  let pad=(max-min)*0.1||1;min-=pad;max+=pad;
+  let step=800/(MAX_POINTS-1);
 
-  ctx.strokeStyle="var(--blue)";
-  ctx.beginPath();
+  ctx.strokeStyle="#3498db";ctx.beginPath();
   h.forEach((p,i)=>{
-    let x=i*xStep;
-    let y=canvas.height-(p-min)/(max-min)*canvas.height;
-    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    let x=i*step;
+    let y=400-(p-min)/(max-min)*400;
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);
   });
   ctx.stroke();
 
-  // current price line
-  ctx.strokeStyle="#444";
-  let cy=canvas.height-(c.price-min)/(max-min)*canvas.height;
-  ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(canvas.width,cy);ctx.stroke();
+  let cy=400-(c.price-min)/(max-min)*400;
+  ctx.strokeStyle="#444";ctx.beginPath();
+  ctx.moveTo(0,cy);ctx.lineTo(800,cy);ctx.stroke();
 
-  // buy points
-  ctx.fillStyle="var(--green)";
+  ctx.fillStyle="#2ecc71";
   c.buys.forEach(b=>{
-    if(b.index>=0 && b.index<h.length){
-      let x=b.index*xStep;
-      let y=canvas.height-(b.price-min)/(max-min)*canvas.height;
+    if(b.index<h.length){
+      let x=b.index*step;
+      let y=400-(b.price-min)/(max-min)*400;
       ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();
     }
   });
@@ -239,13 +266,13 @@ function renderStats(){
   state.companies.forEach(c=>{
     let latent=(c.price-c.avg)*c.shares;
     let total=c.realized+latent;
-    let tr=document.createElement("tr");
-    tr.innerHTML=`
+    body.innerHTML+=`
+    <tr>
       <td>${c.name}</td>
       <td class="${c.realized>=0?"green":"red"}">${fmt(c.realized)}</td>
       <td class="${latent>=0?"green":"red"}">${fmt(latent)}</td>
-      <td class="${total>=0?"green":"red"}">${fmt(total)}</td>`;
-    body.appendChild(tr);
+      <td class="${total>=0?"green":"red"}">${fmt(total)}</td>
+    </tr>`;
   });
 }
 
@@ -255,6 +282,7 @@ function render(){
   renderDetails();
   renderChart();
   renderStats();
+  aiAnalysis();
 }
 
 document.querySelectorAll(".tabs button").forEach(b=>{
@@ -268,7 +296,6 @@ document.querySelectorAll(".tabs button").forEach(b=>{
 
 setInterval(updatePrices,450);
 render();
-
 })();
 </script>
 </body>
