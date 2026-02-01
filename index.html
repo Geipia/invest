@@ -113,7 +113,7 @@ th:first-child,td:first-child{text-align:left}
         <div id="tradingTab">
             <div class="card sticky-summary">
                 <div class="row"><span>Capital</span><b id="cash"></b></div>
-                <div class="row"><span>Valeur totale</span><b id="total"></b></div>
+                <div class="row"><span>Valeur portefeuille</span><b id="total"></b></div>
                 <div class="row"><span>Gain global</span><b id="global"></b></div>
             </div>
             <div id="companies"></div>
@@ -135,7 +135,7 @@ th:first-child,td:first-child{text-align:left}
 </main>
 
 <script>
-/* ===== ENTREPRISES ===== */
+/* ================= ENTREPRISES ================= */
 const BASE = [
 {name:"TechNova",price:65,vol:0.004},{name:"DataSphere",price:88,vol:0.005},
 {name:"QuantumSys",price:110,vol:0.006},{name:"CyberLink",price:54,vol:0.004},
@@ -175,22 +175,26 @@ const BASE = [
 let cash=2000, companies=[], selected=0;
 const windowSize=60;
 
-/* ===== INIT ===== */
+/* ================= INIT ================= */
 function init(){
     const save=localStorage.getItem("tradeSave");
     if(save){
         ({cash,companies,selected}=JSON.parse(save));
     }else{
         companies=BASE.map(c=>({
-            ...c,shares:0,avg:0,realized:0,
-            history:[c.price],buys:[]
+            ...c,
+            shares:0,
+            avg:0,
+            realized:0,
+            history:[c.price],
+            buys:[]
         }));
     }
     render();
 }
 init();
 
-/* ===== SIMULATION ===== */
+/* ================= SIMULATION ================= */
 setInterval(()=>{
     companies.forEach(c=>{
         const r=(Math.random()-0.5)*c.vol;
@@ -201,7 +205,7 @@ setInterval(()=>{
     save(); render();
 },450);
 
-/* ===== ACTIONS ===== */
+/* ================= ACTIONS ================= */
 function buy(i){
     const c=companies[i];
     if(cash>=c.price){
@@ -221,7 +225,7 @@ function sell(i){
     }
 }
 
-/* ===== RENDER ===== */
+/* ================= RENDER GLOBAL ================= */
 function render(){
     const stockVal=companies.reduce((s,c)=>s+c.shares*c.price,0);
     const invested=companies.reduce((s,c)=>s+c.shares*c.avg,0);
@@ -233,14 +237,18 @@ function render(){
     globalEl.textContent=global.toFixed(2)+" €";
     globalEl.className=global>=0?"green":"red";
 
-    renderCompanies(); drawChart(); renderDetails(); renderStats();
+    renderCompanies();
+    drawChart();
+    renderDetails();
+    renderStats();
 }
 
 const cashEl=document.getElementById("cash"),
       totalEl=document.getElementById("total"),
       globalEl=document.getElementById("global");
 
-/* ===== LISTE ===== */
+/* ================= LISTE ENTREPRISES ================= */
+const companiesEl=document.getElementById("companies");
 function renderCompanies(){
     companiesEl.innerHTML="";
     companies.forEach((c,i)=>{
@@ -261,9 +269,9 @@ function renderCompanies(){
         companiesEl.appendChild(d);
     });
 }
-const companiesEl=document.getElementById("companies");
 
-/* ===== GRAPH ===== */
+/* ================= GRAPH ================= */
+const chart=document.getElementById("chart");
 function drawChart(){
     const c=companies[selected];
     const ctx=chart.getContext("2d");
@@ -273,7 +281,8 @@ function drawChart(){
     const min=Math.min(...data), max=Math.max(...data);
     const pad=(max-min)*0.15||1;
 
-    ctx.strokeStyle="#3b82f6"; ctx.beginPath();
+    ctx.strokeStyle="#3b82f6";
+    ctx.beginPath();
     data.forEach((p,i)=>{
         const x=i/(windowSize-1)*600;
         const y=320-(p-(min-pad))/(max-min+pad*2)*320;
@@ -288,39 +297,51 @@ function drawChart(){
             const i=b.index-start;
             const x=i/(windowSize-1)*600;
             const y=320-(b.price-(min-pad))/(max-min+pad*2)*320;
-            ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x,y,4,0,Math.PI*2);
+            ctx.fill();
         }
     });
 }
 
-/* ===== DETAILS ===== */
+/* ================= DETAILS ================= */
+const details=document.getElementById("details");
 function renderDetails(){
     const c=companies[selected];
     const gain=(c.price-c.avg)*c.shares;
     details.innerHTML=`
     <b>${c.name}</b><br>
-    Prix: ${c.price.toFixed(2)} €<br>
-    Prix moyen: ${c.avg.toFixed(2)} €<br>
-    Parts: ${c.shares}<br>
-    Gain latent: <span class="${gain>=0?'green':'red'}">${gain.toFixed(2)} €</span>`;
+    Prix actuel : ${c.price.toFixed(2)} €<br>
+    Prix moyen : ${c.avg.toFixed(2)} €<br>
+    Parts : ${c.shares}<br>
+    Gain latent :
+    <span class="${gain>=0?'green':'red'}">${gain.toFixed(2)} €</span>`;
 }
 
-/* ===== STATS ===== */
+/* ================= STATS (AVEC COULEURS) ================= */
+const statsTable=document.getElementById("statsTable");
 function renderStats(){
-    statsTable.innerHTML="<tr><th>Entreprise</th><th>Réalisé</th><th>Latent</th><th>Total</th></tr>";
+    statsTable.innerHTML=`
+    <tr>
+        <th>Entreprise</th>
+        <th>Réalisé</th>
+        <th>Latent</th>
+        <th>Total</th>
+    </tr>`;
     companies.forEach(c=>{
         const latent=(c.price-c.avg)*c.shares;
+        const total=latent+c.realized;
         statsTable.innerHTML+=`
         <tr>
             <td>${c.name}</td>
-            <td>${c.realized.toFixed(2)}</td>
-            <td>${latent.toFixed(2)}</td>
-            <td>${(latent+c.realized).toFixed(2)}</td>
+            <td class="${c.realized>=0?'green':'red'}">${c.realized.toFixed(2)}</td>
+            <td class="${latent>=0?'green':'red'}">${latent.toFixed(2)}</td>
+            <td class="${total>=0?'green':'red'}">${total.toFixed(2)}</td>
         </tr>`;
     });
 }
 
-/* ===== UTILS ===== */
+/* ================= UTILS ================= */
 function save(){
     localStorage.setItem("tradeSave",JSON.stringify({cash,companies,selected}));
 }
