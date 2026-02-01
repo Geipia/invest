@@ -2,252 +2,306 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Simulateur de Trading + IA Avancée</title>
+<title>Trading Simulator Pro</title>
 <style>
 :root{
-  --bg:#0f1420;--panel:#161d2e;--card:#1c2540;
-  --text:#e6e9f0;--muted:#8b93a7;
-  --green:#2ecc71;--red:#e74c3c;--blue:#3498db;
+  --bg:#0e1117;
+  --panel:#161b22;
+  --border:#222;
+  --text:#e6edf3;
+  --green:#2ecc71;
+  --red:#e74c3c;
+  --blue:#3498db;
 }
-*{box-sizing:border-box;font-family:Inter,Arial,sans-serif}
-body{margin:0;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden}
-.sidebar{width:360px;background:var(--panel);display:flex;flex-direction:column}
-.header{position:sticky;top:0;background:var(--panel);padding:12px;border-bottom:1px solid #222;z-index:2}
-.header .row{display:flex;justify-content:space-between;margin:4px 0}
-.green{color:var(--green)} .red{color:var(--red)}
-.search{padding:10px;border-bottom:1px solid #222}
-.search input{width:100%;padding:8px;border-radius:8px;border:none;background:#0b1020;color:#fff}
-.list{overflow:auto;flex:1}
-.company{padding:10px;border-bottom:1px solid #222;cursor:pointer}
-.company.active{background:var(--card)}
-.company .top{display:flex;justify-content:space-between}
-.company .bottom{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
-.btns button{background:#222c4d;border:none;color:#fff;padding:4px 10px;border-radius:6px;cursor:pointer;transition:.2s}
-.btns button:hover{transform:scale(1.05)}
-.btns button.buy{background:var(--green)}
-.btns button.sell{background:var(--red)}
-.main{flex:1;display:flex;flex-direction:column}
-.tabs{display:flex;background:var(--panel)}
-.tabs button{flex:1;padding:10px;border:none;background:none;color:var(--muted);cursor:pointer}
-.tabs button.active{color:#fff;border-bottom:2px solid var(--blue)}
-.view{flex:1;display:none;overflow:hidden}
-.view.active{display:flex}
-.chartWrap{flex:1;display:flex;flex-direction:column;padding:10px}
-canvas{background:#0b1020;border-radius:12px;max-width:100%;max-height:100%}
-.details{display:flex;justify-content:space-around;margin-top:8px}
-.stats,.ai{padding:14px;overflow:auto;width:100%}
-.ai-card{background:var(--card);padding:14px;border-radius:12px;margin-bottom:12px}
-.ai button{margin-top:10px;padding:10px;width:100%;border:none;border-radius:10px;background:var(--green);color:#000;font-weight:bold;cursor:pointer}
-.ai small{color:var(--muted)}
+*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
+body{margin:0;background:var(--bg);color:var(--text);overflow:hidden}
+header{position:sticky;top:0;background:var(--panel);padding:10px;display:flex;gap:20px;border-bottom:1px solid var(--border);z-index:10}
+.stat{flex:1}
+.positive{color:var(--green)}
+.negative{color:var(--red)}
+main{display:flex;height:calc(100vh - 60px)}
+#left{width:40%;display:flex;flex-direction:column;border-right:1px solid var(--border)}
+#search{margin:10px;padding:8px;border-radius:6px;border:none;background:#0b0f14;color:var(--text)}
+#companies{flex:1;overflow:auto}
+.company{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer}
+.company:hover{background:#0b0f14}
+.buttons button{margin-left:5px;padding:4px 8px;border:none;border-radius:4px;cursor:pointer}
+.buy{background:var(--green);color:#000}
+.sell{background:var(--red);color:#000}
+#right{flex:1;display:flex;flex-direction:column}
+canvas{flex:1;background:#0b0f14}
+#info,#ia,#stats{padding:10px;border-top:1px solid var(--border)}
+.hidden{display:none}
+table{width:100%;border-collapse:collapse}
+td,th{padding:4px;border-bottom:1px solid var(--border);text-align:right}
+td:first-child,th:first-child{text-align:left}
+button.iaBuy{margin-top:8px;padding:6px 10px;border:none;border-radius:4px;background:var(--blue);color:#fff;cursor:pointer}
+nav{display:flex;gap:10px;padding:6px;background:var(--panel)}
+nav button{background:#0b0f14;border:none;color:var(--text);padding:6px 10px;border-radius:4px;cursor:pointer}
 </style>
 </head>
 <body>
+<header>
+  <div class="stat">Capital: <span id="capital"></span></div>
+  <div class="stat">Portefeuille: <span id="portfolio"></span></div>
+  <div class="stat">Gain global: <span id="globalGain"></span></div>
+</header>
 
-<div class="sidebar">
-  <div class="header">
-    <div class="row"><span>Capital</span><span id="capital"></span></div>
-    <div class="row"><span>Portefeuille</span><span id="portfolio"></span></div>
-    <div class="row"><span>Gain global</span><span id="globalGain"></span></div>
-  </div>
-  <div class="search">
+<main>
+  <div id="left">
     <input id="search" placeholder="Rechercher une entreprise">
+    <div id="companies"></div>
   </div>
-  <div class="list" id="companyList"></div>
-</div>
-
-<div class="main">
-  <div class="tabs">
-    <button class="active" data-tab="trade">Trading</button>
-    <button data-tab="stats">Stats</button>
-    <button data-tab="ai">IA</button>
+  <div id="right">
+    <canvas id="chart"></canvas>
+    <nav>
+      <button data-tab="info">Trading</button>
+      <button data-tab="stats">Stats</button>
+      <button data-tab="ia">IA</button>
+    </nav>
+    <div id="info"></div>
+    <div id="stats" class="hidden"></div>
+    <div id="ia" class="hidden"></div>
   </div>
-
-  <div class="view active" id="trade">
-    <div class="chartWrap">
-      <canvas id="chart" width="800" height="400"></canvas>
-      <div class="details" id="details"></div>
-    </div>
-  </div>
-
-  <div class="view" id="stats">
-    <div class="stats">
-      <table>
-        <thead>
-          <tr><th>Entreprise</th><th>Réalisé</th><th>Latent</th><th>Total</th></tr>
-        </thead>
-        <tbody id="statsBody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="view" id="ai">
-    <div class="ai">
-      <div class="ai-card" id="aiMain"></div>
-      <div class="ai-card" id="aiData"></div>
-      <div class="ai-card" id="aiList"></div>
-    </div>
-  </div>
-</div>
+</main>
 
 <script>
 (()=>{
-const NAMES=[ "TechNova","DataSphere","QuantumSys","CyberLink","AIWorks","NextGen","FutureLabs","DigitalCore","SmartLogic","VisionTech","EcoPower","Solaris","WindForce","HydroFlow","BioEarth","HealthTech","MediCore","LifeSystems","CarePlus","NeuroLab","AutoMotion","DriveX","ElectroCar","RoadTech","Motorix","ShopEase","MarketHub","BuySmart","RetailPro","EcomPlus","FinTrust","MoneyFlow","CreditWay","PaySmart","WealthX","GameForge","PlayVerse","PixelWorks","VRStudio","E-Sportix","LogiTrans","ShipFast","CargoNet","MoveX","SupplyPro" ];
 
-let state=JSON.parse(localStorage.getItem("tradingState"))||{
-  capital:2000,
-  companies:NAMES.map(n=>({name:n,price:50+Math.random()*100,vol:0.5+Math.random()*1.5,shares:0,avg:0,history:[],buys:[],realized:0}))
-};
+const NAMES=[
+"TechNova","DataSphere","QuantumSys","CyberLink","AIWorks","NextGen","FutureLabs","DigitalCore","SmartLogic","VisionTech",
+"EcoPower","Solaris","WindForce","HydroFlow","BioEarth",
+"HealthTech","MediCore","LifeSystems","CarePlus","NeuroLab",
+"AutoMotion","DriveX","ElectroCar","RoadTech","Motorix",
+"ShopEase","MarketHub","BuySmart","RetailPro","EcomPlus",
+"FinTrust","MoneyFlow","CreditWay","PaySmart","WealthX",
+"GameForge","PlayVerse","PixelWorks","VRStudio","E-Sportix",
+"LogiTrans","ShipFast","CargoNet","MoveX","SupplyPro"
+];
 
-let selected=0,search="",bestIndex=0;
-const MAX_POINTS=60;
-const $=id=>document.getElementById(id);
-const fmt=v=>v.toFixed(2)+" €";
-const save=()=>localStorage.setItem("tradingState",JSON.stringify(state));
+let capital=2000;
+let selected=null;
+let companies={};
 
-function updatePrices(){
-  state.companies.forEach(c=>{
-    let d=(Math.random()-0.5)*c.vol;
-    c.price=Math.max(0.1,c.price+d);
-    c.history.push(c.price);
-    if(c.history.length>MAX_POINTS)c.history.shift();
+const saved=localStorage.getItem("simu");
+if(saved){
+  const d=JSON.parse(saved);
+  capital=d.capital;
+  companies=d.companies;
+}else{
+  NAMES.forEach(n=>{
+    companies[n]={
+      name:n,
+      price:50+Math.random()*50,
+      vol:0,
+      shares:0,
+      avg:0,
+      history:[],
+      buys:[],
+      realized:0
+    };
   });
-  render();save();
 }
 
-function buy(i){
-  let c=state.companies[i];
-  if(state.capital>=c.price){
-    state.capital-=c.price;
-    c.avg=(c.avg*c.shares+c.price)/(c.shares+1);
-    c.shares++;
-    c.buys.push({price:c.price,index:c.history.length-1});
-  }
-}
-function sell(i){
-  let c=state.companies[i];
-  if(c.shares>0){
-    state.capital+=c.price;
-    c.realized+=(c.price-c.avg);
-    c.shares--; if(!c.shares)c.avg=0;
-  }
-}
+const capEl=capitalEl=document.getElementById("capital");
+const portEl=document.getElementById("portfolio");
+const gainEl=document.getElementById("globalGain");
+const listEl=document.getElementById("companies");
+const infoEl=document.getElementById("info");
+const statsEl=document.getElementById("stats");
+const iaEl=document.getElementById("ia");
+const searchEl=document.getElementById("search");
+const canvas=document.getElementById("chart");
+const ctx=canvas.getContext("2d");
 
-function indicators(c){
-  if(c.history.length<10)return {momentum:0,volatility:0,trend:0,estimate:0,confidence:0};
-  let last=c.history.slice(-5);
-  let prev=c.history.slice(-10,-5);
-  let ma1=last.reduce((a,b)=>a+b,0)/5;
-  let ma2=prev.reduce((a,b)=>a+b,0)/5;
-  let trend=(ma1-ma2)/ma2;
-  let volatility=Math.sqrt(last.map(p=>Math.pow(p-ma1,2)).reduce((a,b)=>a+b,0)/5)/ma1;
-  let momentum=(last[4]-last[0])/last[0];
-  let estimate=trend*100*0.8;
-  let confidence=Math.min(100,Math.max(5,(1-volatility)*100));
-  return {momentum,volatility,trend,estimate,confidence};
+function resize(){
+  canvas.width=canvas.clientWidth;
+  canvas.height=canvas.clientHeight;
+}
+window.addEventListener("resize",resize);
+resize();
+
+function save(){
+  localStorage.setItem("simu",JSON.stringify({capital,companies}));
 }
 
-function aiAnalysis(){
-  let ranked=state.companies.map((c,i)=>{
-    let ind=indicators(c);
-    return {...c,index:i,score:ind.trend,ind};
-  }).sort((a,b)=>b.score-a.score);
-
-  let b=ranked[0]; bestIndex=b.index;
-
-  $("aiMain").innerHTML=`
-    <b>Suggestion principale IA</b><br><br>
-    <strong>${b.name}</strong><br>
-    Hausse estimée (court terme) :
-    <span class="${b.ind.estimate>=0?'green':'red'}">
-      ${b.ind.estimate.toFixed(2)} %
-    </span>
-    <button onclick="window.buyFromIA()">Acheter 1 part immédiatement</button>
-    <small>Décision basée sur tendances, momentum et volatilité</small>
-  `;
-
-  $("aiData").innerHTML=`
-    <b>Données analysées</b><br><br>
-    Momentum : ${(b.ind.momentum*100).toFixed(2)} %<br>
-    Volatilité : ${(b.ind.volatility*100).toFixed(2)} %<br>
-    Force de tendance : ${(b.ind.trend*100).toFixed(2)} %<br>
-    Confiance IA : ${b.ind.confidence.toFixed(0)} %
-  `;
-
-  $("aiList").innerHTML="<b>Classement prédictif</b><br><br>"+
-    ranked.slice(0,10).map(c=>`
-      ${c.name} :
-      <span class="${c.score>=0?'green':'red'}">
-        ${(c.score*100).toFixed(2)} %
-      </span>
-    `).join("<br>");
+function updateHeader(){
+  capEl.textContent=capital.toFixed(2)+" €";
+  let port=capital;
+  let realized=0,latent=0;
+  Object.values(companies).forEach(c=>{
+    port+=c.shares*c.price;
+    realized+=c.realized;
+    latent+=(c.price-c.avg)*c.shares;
+  });
+  portEl.textContent=port.toFixed(2)+" €";
+  const g=realized+latent;
+  gainEl.textContent=g.toFixed(2)+" €";
+  gainEl.className=g>=0?"positive":"negative";
 }
 
-window.buyFromIA=()=>{buy(bestIndex);selected=bestIndex;render();};
-
-function renderSidebar(){
-  $("companyList").innerHTML="";
-  [...state.companies].filter(c=>c.name.toLowerCase().includes(search))
-    .sort((a,b)=>b.shares-a.shares).forEach(c=>{
-      let i=state.companies.indexOf(c);
-      let l=(c.price-c.avg)*c.shares;
-      let d=document.createElement("div");
-      d.className="company"+(i===selected?" active":"");
-      d.onclick=()=>{selected=i;render()};
-      d.innerHTML=`
-        <div class="top"><span>${c.name}</span><span>${fmt(c.price)}</span></div>
-        <div class="bottom">
-          <span>${c.shares} parts</span>
-          <span class="${l>=0?'green':'red'}">${fmt(l)}</span>
-          <div class="btns">
-            <button class="buy">+</button>
-            <button class="sell">−</button>
-          </div>
-        </div>`;
-      d.querySelector(".buy").onclick=e=>{e.stopPropagation();buy(i)};
-      d.querySelector(".sell").onclick=e=>{e.stopPropagation();sell(i)};
-      $("companyList").appendChild(d);
-    });
+function buy(c){
+  if(capital<c.price)return;
+  capital-=c.price;
+  c.avg=(c.avg*c.shares+c.price)/(c.shares+1);
+  c.shares++;
+  c.buys.push({price:c.price,index:c.history.length});
+  save();
 }
 
-function renderHeader(){
-  let p=state.capital,r=0,l=0;
-  state.companies.forEach(c=>{p+=c.price*c.shares;r+=c.realized;l+=(c.price-c.avg)*c.shares;});
-  $("capital").textContent=fmt(state.capital);
-  $("portfolio").textContent=fmt(p);
-  $("globalGain").textContent=fmt(r+l);
-  $("globalGain").className=r+l>=0?"green":"red";
+function sell(c){
+  if(c.shares<=0)return;
+  capital+=c.price;
+  c.realized+=(c.price-c.avg);
+  c.shares--;
+  if(c.shares===0)c.avg=0;
+  save();
 }
 
-function renderDetails(){
-  let c=state.companies[selected],l=(c.price-c.avg)*c.shares;
-  $("details").innerHTML=`<span>Prix ${fmt(c.price)}</span><span>Moyen ${fmt(c.avg)}</span><span>Parts ${c.shares}</span><span class="${l>=0?'green':'red'}">${fmt(l)}</span>`;
+function renderList(){
+  const q=searchEl.value.toLowerCase();
+  listEl.innerHTML="";
+  Object.values(companies)
+  .filter(c=>c.name.toLowerCase().includes(q))
+  .sort((a,b)=>b.shares-a.shares)
+  .forEach(c=>{
+    const div=document.createElement("div");
+    div.className="company";
+    div.onclick=()=>selected=c;
+    const latent=(c.price-c.avg)*c.shares;
+    div.innerHTML=`
+      <div>
+        <strong>${c.name}</strong><br>
+        ${c.price.toFixed(2)} €
+      </div>
+      <div>
+        ${c.shares} parts<br>
+        <span class="${latent>=0?"positive":"negative"}">${latent.toFixed(2)} €</span>
+      </div>
+      <div class="buttons">
+        <button class="buy">+</button>
+        <button class="sell">-</button>
+      </div>`;
+    div.querySelector(".buy").onclick=e=>{e.stopPropagation();buy(c)};
+    div.querySelector(".sell").onclick=e=>{e.stopPropagation();sell(c)};
+    listEl.appendChild(div);
+  });
 }
+
+function tick(){
+  Object.values(companies).forEach(c=>{
+    const delta=(Math.random()-0.5)*0.5;
+    c.price=Math.max(1,c.price+delta);
+    c.history.push(c.price);
+    if(c.history.length>200)c.history.shift();
+  });
+  updateHeader();
+  renderList();
+  renderChart();
+  renderInfo();
+  save();
+}
+setInterval(tick,450);
 
 function renderChart(){
-  const ctx=$("chart").getContext("2d"); ctx.clearRect(0,0,800,400);
-  let c=state.companies[selected],h=c.history;if(h.length<2)return;
-  let min=Math.min(...h),max=Math.max(...h),pad=(max-min)*0.1||1;min-=pad;max+=pad;
-  let step=800/(MAX_POINTS-1);
-  ctx.strokeStyle="#3498db";ctx.beginPath();
-  h.forEach((p,i)=>{let x=i*step,y=400-(p-min)/(max-min)*400;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();
-  let cy=400-(c.price-min)/(max-min)*400;
-  ctx.strokeStyle="#444";ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(800,cy);ctx.stroke();
-  ctx.fillStyle="#2ecc71";
-  c.buys.forEach(b=>{if(b.index<h.length){let x=b.index*step,y=400-(b.price-min)/(max-min)*400;ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();}});
+  if(!selected)return;
+  const h=selected.history.slice(-60);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(h.length<2)return;
+  let min=Math.min(...h),max=Math.max(...h);
+  const m=(max-min)*0.2;
+  min-=m;max+=m;
+  const scale=v=>(canvas.height-20)-(v-min)/(max-min)*(canvas.height-40);
+  ctx.strokeStyle="var(--blue)";
+  ctx.beginPath();
+  h.forEach((v,i)=>{
+    const x=i/(h.length-1)*canvas.width;
+    const y=scale(v);
+    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  ctx.strokeStyle="#888";
+  const y=scale(h[h.length-1]);
+  ctx.beginPath();
+  ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();
+  ctx.fillStyle="var(--green)";
+  selected.buys.forEach(b=>{
+    const idx=b.index-(selected.history.length-h.length);
+    if(idx>=0&&idx<h.length){
+      const x=idx/(h.length-1)*canvas.width;
+      const yb=scale(b.price);
+      ctx.beginPath();
+      ctx.arc(x,yb,4,0,Math.PI*2);
+      ctx.fill();
+    }
+  });
+}
+
+function renderInfo(){
+  if(!selected){infoEl.textContent="";return}
+  const latent=(selected.price-selected.avg)*selected.shares;
+  infoEl.innerHTML=`
+    <strong>${selected.name}</strong><br>
+    Prix: ${selected.price.toFixed(2)} €<br>
+    Prix moyen: ${selected.avg.toFixed(2)} €<br>
+    Parts: ${selected.shares}<br>
+    Gain latent: <span class="${latent>=0?"positive":"negative"}">${latent.toFixed(2)} €</span>
+  `;
 }
 
 function renderStats(){
-  $("statsBody").innerHTML=state.companies.map(c=>{
-    let l=(c.price-c.avg)*c.shares,t=c.realized+l;
-    return `<tr><td>${c.name}</td><td class="${c.realized>=0?'green':'red'}">${fmt(c.realized)}</td><td class="${l>=0?'green':'red'}">${fmt(l)}</td><td class="${t>=0?'green':'red'}">${fmt(t)}</td></tr>`;
-  }).join("");
+  const rows=Object.values(companies).map(c=>{
+    const latent=(c.price-c.avg)*c.shares;
+    const total=latent+c.realized;
+    return {name:c.name,latent,realized:c.realized,total};
+  }).sort((a,b)=>b.total-a.total);
+  statsEl.innerHTML="<table><tr><th>Entreprise</th><th>Réalisé</th><th>Latent</th><th>Total</th></tr>"+
+  rows.map(r=>`
+    <tr>
+      <td>${r.name}</td>
+      <td>${r.realized.toFixed(2)}</td>
+      <td>${r.latent.toFixed(2)}</td>
+      <td class="${r.total>=0?"positive":"negative"}">${r.total.toFixed(2)}</td>
+    </tr>`).join("")+"</table>";
 }
 
-function render(){renderHeader();renderSidebar();renderDetails();renderChart();renderStats();aiAnalysis();}
+function renderIA(){
+  if(!selected){iaEl.textContent="";return}
+  const h=selected.history.slice(-10);
+  const slope=h.length>1?(h[h.length-1]-h[0])/h.length:0;
+  const vol=Math.sqrt(h.reduce((s,v)=>s+(v-h[0])**2,0)/h.length);
+  let action="ATTENDRE";
+  if(slope>0.05)action="ACHETER";
+  if(slope<-0.05)action="VENDRE";
+  iaEl.innerHTML=`
+    <strong>Analyse IA – ${selected.name}</strong><br>
+    Suggestion: <strong>${action}</strong><br>
+    Hausse estimée: ${(slope*10).toFixed(2)} %<br>
+    Confiance: ${(Math.min(100,Math.abs(slope)*500)).toFixed(0)} %<br>
+    Risque: ${(vol*10).toFixed(2)}<br>
+    Tendance: ${slope>=0?"Haussière":"Baissière"}<br>
+    Volatilité: ${vol.toFixed(2)}<br>
+    Momentum: ${slope.toFixed(4)}<br>
+    <button class="iaBuy">Acheter la suggestion</button>
+  `;
+  iaEl.querySelector(".iaBuy").onclick=()=>{if(action==="ACHETER")buy(selected)};
+}
 
-$("search").oninput=e=>{search=e.target.value.toLowerCase();render()};
-document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));b.classList.add("active");$(b.dataset.tab).classList.add("active");});
-setInterval(updatePrices,450);render();
+document.querySelectorAll("nav button").forEach(b=>{
+  b.onclick=()=>{
+    infoEl.classList.add("hidden");
+    statsEl.classList.add("hidden");
+    iaEl.classList.add("hidden");
+    if(b.dataset.tab==="info")infoEl.classList.remove("hidden");
+    if(b.dataset.tab==="stats"){statsEl.classList.remove("hidden");renderStats()}
+    if(b.dataset.tab==="ia"){iaEl.classList.remove("hidden");renderIA()}
+  };
+});
+
+searchEl.oninput=renderList;
+renderList();
+updateHeader();
+
 })();
 </script>
 </body>
