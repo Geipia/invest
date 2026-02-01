@@ -144,8 +144,11 @@ function trend(c){
 function aiAutoTrade(){
   if(!state.autoIA || !state.target) return;
 
+  let capital = state.capital;
+  let reste = state.target - capital;
+
   /* OBJECTIF ATTEINT */
-  if(state.capital >= state.target){
+  if(reste <= 0){
     state.companies.forEach((c,i)=>{
       while(c.shares>0) sell(i);
     });
@@ -153,52 +156,63 @@ function aiAutoTrade(){
     return;
   }
 
-  /* ANALYSE */
+  /* FACTEUR D’AGRESSIVITÉ */
+  let ratio = reste / state.target;
+  let aggression =
+    ratio > 0.5 ? 0.6 :
+    ratio > 0.2 ? 0.35 :
+                  0.15;
+
+  /* ANALYSE DES ACTIONS */
   let ranked = state.companies.map((c,i)=>{
     if(c.history.length < 20) return null;
 
-    let short = c.history.slice(-5).reduce((a,b)=>a+b)/5;
-    let mid   = c.history.slice(-15).reduce((a,b)=>a+b)/15;
-    let score = ((short - mid) / mid);
+    let short = avg(c.history.slice(-5));
+    let mid   = avg(c.history.slice(-15));
+    let score = (short - mid) / mid;
 
-    return {
-      i,
-      score,
-      vol: c.vol
-    };
+    return { i, score, vol:c.vol };
   }).filter(Boolean)
     .sort((a,b)=>b.score - a.score);
 
-  /* STOP-LOSS */
+  /* STOP-LOSS STRICT */
   state.companies.forEach((c,i)=>{
     if(c.shares>0){
       let perf = (c.price - c.avg) / c.avg;
-      if(perf < -0.03) sell(i);
+      if(perf < -0.025) sell(i);
     }
   });
 
-  /* ACHAT AGRESSIF */
-  ranked.slice(0,2).forEach(r=>{
+  /* ACHAT CIBLÉ */
+  ranked.slice(0,1).forEach(r=>{
     let c = state.companies[r.i];
-    if(r.score > 0.015 && r.vol > 0.6){
-      let budget = state.capital * Math.min(0.3, r.score * 10);
+
+    if(r.score > 0.012 && r.vol > 0.7){
+      let budget = capital * aggression;
       let qty = Math.floor(budget / c.price);
       for(let k=0;k<qty;k++) buy(r.i);
     }
   });
 
-  /* TAKE PROFIT */
+  /* PRISE DE PROFIT ADAPTATIVE */
   state.companies.forEach((c,i)=>{
     if(c.shares>0){
       let perf = (c.price - c.avg) / c.avg;
-      if(perf > 0.07){
+
+      if(perf > 0.06) {
         while(c.shares>0) sell(i);
-      } else if(perf > 0.04){
+      }
+      else if(perf > 0.035) {
         sell(i);
       }
     }
   });
 }
+
+function avg(arr){
+  return arr.reduce((a,b)=>a+b,0)/arr.length;
+}
+
 
 
 function updatePrices(){
