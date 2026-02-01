@@ -5,455 +5,346 @@
 <title>Simulateur de Trading</title>
 
 <style>
-/* ================= THEME ================= */
-body {
-    margin: 0;
-    font-family: Inter, Arial, sans-serif;
-    background: #0e1117;
-    color: #e5e7eb;
+:root{
+    --bg:#0f172a;
+    --card:#020617;
+    --border:#1e293b;
+    --text:#e5e7eb;
+    --green:#22c55e;
+    --red:#ef4444;
+    --blue:#3b82f6;
 }
-
-.container {
-    display: flex;
-    height: calc(100vh - 60px);
+*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
+body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
 }
-
-/* ================= TABS ================= */
-.tabs {
-    display: flex;
-    padding: 12px;
-    background: #0b1220;
-    border-bottom: 1px solid #1f2937;
+header{
+    padding:15px;
+    display:flex;
+    gap:10px;
 }
-
-.tab {
-    margin-right: 12px;
-    padding: 8px 18px;
-    border-radius: 999px;
-    background: #1f2633;
-    cursor: pointer;
-    font-weight: 600;
-    opacity: 0.7;
-    transition: all 0.15s ease;
+.tab{
+    padding:10px 20px;
+    border-radius:10px;
+    background:var(--card);
+    cursor:pointer;
+    transition:.2s;
 }
-
-.tab:hover {
-    opacity: 1;
-    transform: translateY(-1px);
+.tab.active{
+    background:var(--blue);
 }
-
-.tab.active {
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
-    box-shadow: 0 6px 16px #2563eb66;
-    opacity: 1;
+main{
+    display:flex;
+    height:calc(100vh - 60px);
 }
-
-/* ================= PANELS ================= */
-.left {
-    width: 45%;
-    padding: 15px;
-    overflow-y: auto;
+#left{
+    width:45%;
+    padding:10px;
+    overflow:auto;
 }
-
-.right {
-    width: 55%;
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
+#right{
+    width:55%;
+    padding:10px;
 }
-
-/* ================= CARDS ================= */
-.card {
-    background: #161b22;
-    border-radius: 14px;
-    padding: 14px;
-    margin-bottom: 14px;
+.card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:12px;
+    margin-bottom:10px;
 }
-
-/* ================= TOP STATS ================= */
-.top-stats {
-    display: flex;
-    justify-content: space-between;
-    text-align: center;
+.row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin:4px 0;
 }
-
-.stat span {
-    font-size: 13px;
-    opacity: 0.6;
+.company{
+    padding:10px;
+    border-radius:12px;
+    cursor:pointer;
 }
-
-.stat strong {
-    font-size: 18px;
+.company:hover{
+    background:#020617aa;
 }
-
-/* ================= COMPANY LIST ================= */
-.company {
-    display: grid;
-    grid-template-columns: 1fr 90px 70px 110px 150px;
-    gap: 10px;
-    align-items: center;
-    padding: 10px;
-    border-radius: 10px;
-    cursor: pointer;
+.btn{
+    padding:6px 12px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:bold;
+    transition:.15s;
 }
-
-.company:hover {
-    background: #1f2633;
+.buy{background:var(--green);color:#052e16}
+.sell{background:var(--red);color:#450a0a}
+.btn:active{transform:scale(.92)}
+.green{color:var(--green)}
+.red{color:var(--red)}
+canvas{
+    width:100%;
+    height:320px;
+    background:#020617;
+    border-radius:12px;
 }
-
-.company.selected {
-    background: linear-gradient(90deg, #2563eb22, transparent);
-    border-left: 3px solid #2563eb;
+table{
+    width:100%;
+    border-collapse:collapse;
 }
-
-.price { text-align: right; }
-
-.gain.pos { color: #22c55e; }
-.gain.neg { color: #ef4444; }
-
-/* ================= BUTTONS ================= */
-button {
-    border: none;
-    border-radius: 10px;
-    padding: 8px 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.12s ease;
+th,td{
+    padding:6px;
+    border-bottom:1px solid var(--border);
+    text-align:right;
 }
-
-.buy {
-    background: linear-gradient(135deg, #22c55e, #16a34a);
-    box-shadow: 0 4px 12px #22c55e55;
-}
-
-.sell {
-    background: linear-gradient(135deg, #ef4444, #b91c1c);
-    box-shadow: 0 4px 12px #ef444455;
-}
-
-.buy:hover, .sell:hover {
-    transform: translateY(-1px);
-}
-
-.buy:active, .sell:active {
-    transform: scale(0.96);
-}
-
-/* ================= CANVAS ================= */
-canvas {
-    background: #0b1220;
-    border-radius: 14px;
-}
-
-/* ================= STATS TABLE ================= */
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th, td {
-    padding: 6px;
-    text-align: right;
-}
-
-th {
-    opacity: 0.6;
-}
-
-td:first-child, th:first-child {
-    text-align: left;
-}
+th{text-align:right}
+th:first-child,td:first-child{text-align:left}
 </style>
 </head>
 
 <body>
 
-<div class="tabs">
-    <div class="tab active" id="tabTrading">Trading</div>
-    <div class="tab" id="tabStats">Stats</div>
-</div>
+<header>
+    <div class="tab active" onclick="switchTab('trading')">Trading</div>
+    <div class="tab" onclick="switchTab('stats')">Stats</div>
+</header>
 
-<div class="container">
-    <div class="left" id="tradingView"></div>
+<main>
+    <div id="left">
+        <div id="tradingTab">
+            <div class="card">
+                <div class="row"><span>Capital</span><b id="cash"></b></div>
+                <div class="row"><span>Valeur totale</span><b id="total"></b></div>
+                <div class="row"><span>Gain global</span><b id="global"></b></div>
+            </div>
+            <div id="companies"></div>
+        </div>
 
-    <div class="right">
-        <canvas id="chart" width="720" height="360"></canvas>
-        <div class="card" id="details"></div>
-        <div class="card" id="statsView" style="display:none;"></div>
+        <div id="statsTab" style="display:none">
+            <div class="card">
+                <table id="statsTable"></table>
+            </div>
+        </div>
     </div>
-</div>
+
+    <div id="right">
+        <div class="card">
+            <canvas id="chart" width="600" height="320"></canvas>
+        </div>
+        <div class="card" id="details"></div>
+    </div>
+</main>
 
 <script>
-/* ================= CONFIG ================= */
-const STORAGE_KEY = "trading_sim_final";
-let capital = 2000;
-let selected = 0;
+/* ====== DONNÉES ====== */
+const BASE_COMPANIES = [
+{name:"TechNova",price:65,vol:0.004},{name:"DataSphere",price:88,vol:0.005},
+{name:"QuantumSys",price:110,vol:0.006},{name:"CyberLink",price:54,vol:0.004},
+{name:"AIWorks",price:92,vol:0.005},{name:"NextGen",price:47,vol:0.003},
+{name:"FutureLabs",price:73,vol:0.004},{name:"DigitalCore",price:59,vol:0.003},
+{name:"SmartLogic",price:66,vol:0.004},{name:"VisionTech",price:81,vol:0.005},
 
-/* ================= ENTREPRISES (30) ================= */
-const companiesDefault = [
-        {name:"TechNova", price:65, vol:0.004},
-    {name:"DataSphere", price:88, vol:0.005},
-    {name:"QuantumSys", price:110, vol:0.006},
-    {name:"CyberLink", price:54, vol:0.004},
-    {name:"AIWorks", price:92, vol:0.005},
-    {name:"NextGen", price:47, vol:0.003},
-    {name:"FutureLabs", price:73, vol:0.004},
-    {name:"DigitalCore", price:59, vol:0.003},
-    {name:"SmartLogic", price:66, vol:0.004},
-    {name:"VisionTech", price:81, vol:0.005},
+{name:"EcoPower",price:44,vol:0.003},{name:"Solaris",price:50,vol:0.003},
+{name:"WindForce",price:46,vol:0.003},{name:"HydroFlow",price:52,vol:0.002},
+{name:"BioEarth",price:39,vol:0.002},
 
-    {name:"EcoPower", price:44, vol:0.003},
-    {name:"Solaris", price:50, vol:0.003},
-    {name:"WindForce", price:46, vol:0.003},
-    {name:"HydroFlow", price:52, vol:0.002},
-    {name:"BioEarth", price:39, vol:0.002},
+{name:"HealthTech",price:70,vol:0.003},{name:"MediCore",price:62,vol:0.002},
+{name:"LifeSystems",price:75,vol:0.003},{name:"CarePlus",price:48,vol:0.002},
+{name:"NeuroLab",price:85,vol:0.004},
 
-    {name:"HealthTech", price:70, vol:0.003},
-    {name:"MediCore", price:62, vol:0.002},
-    {name:"LifeSystems", price:75, vol:0.003},
-    {name:"CarePlus", price:48, vol:0.002},
-    {name:"NeuroLab", price:85, vol:0.004},
+{name:"AutoMotion",price:57,vol:0.004},{name:"DriveX",price:61,vol:0.004},
+{name:"ElectroCar",price:90,vol:0.005},{name:"RoadTech",price:49,vol:0.003},
+{name:"Motorix",price:53,vol:0.003},
 
-    {name:"AutoMotion", price:57, vol:0.004},
-    {name:"DriveX", price:61, vol:0.004},
-    {name:"ElectroCar", price:90, vol:0.005},
-    {name:"RoadTech", price:49, vol:0.003},
-    {name:"Motorix", price:53, vol:0.003},
+{name:"ShopEase",price:29,vol:0.005},{name:"MarketHub",price:33,vol:0.004},
+{name:"BuySmart",price:27,vol:0.004},{name:"RetailPro",price:35,vol:0.005},
+{name:"EcomPlus",price:31,vol:0.006},
 
-    {name:"ShopEase", price:29, vol:0.005},
-    {name:"MarketHub", price:33, vol:0.004},
-    {name:"BuySmart", price:27, vol:0.004},
-    {name:"RetailPro", price:35, vol:0.005},
-    {name:"EcomPlus", price:31, vol:0.006},
+{name:"FinTrust",price:78,vol:0.003},{name:"MoneyFlow",price:69,vol:0.004},
+{name:"CreditWay",price:64,vol:0.003},{name:"PaySmart",price:71,vol:0.004},
+{name:"WealthX",price:95,vol:0.005},
 
-    {name:"FinTrust", price:78, vol:0.003},
-    {name:"MoneyFlow", price:69, vol:0.004},
-    {name:"CreditWay", price:64, vol:0.003},
-    {name:"PaySmart", price:71, vol:0.004},
-    {name:"WealthX", price:95, vol:0.005},
+{name:"GameForge",price:56,vol:0.006},{name:"PlayVerse",price:60,vol:0.007},
+{name:"PixelWorks",price:52,vol:0.006},{name:"VRStudio",price:84,vol:0.008},
+{name:"E-Sportix",price:68,vol:0.007},
 
-    {name:"GameForge", price:56, vol:0.006},
-    {name:"PlayVerse", price:60, vol:0.007},
-    {name:"PixelWorks", price:52, vol:0.006},
-    {name:"VRStudio", price:84, vol:0.008},
-    {name:"E-Sportix", price:68, vol:0.007},
-
-    {name:"LogiTrans", price:45, vol:0.003},
-    {name:"ShipFast", price:51, vol:0.003},
-    {name:"CargoNet", price:58, vol:0.003},
-    {name:"MoveX", price:43, vol:0.003},
-    {name:"SupplyPro", price:62, vol:0.004}
+{name:"LogiTrans",price:45,vol:0.003},{name:"ShipFast",price:51,vol:0.003},
+{name:"CargoNet",price:58,vol:0.003},{name:"MoveX",price:43,vol:0.003},
+{name:"SupplyPro",price:62,vol:0.004}
 ];
 
+let cash = 2000;
 let companies = [];
+let selected = 0;
+const windowSize = 60;
 
-/* ================= LOAD / SAVE ================= */
-function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({capital, companies}));
-}
-
-function load() {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (data) {
-        const parsed = JSON.parse(data);
-        capital = parsed.capital;
-        companies = parsed.companies;
-    } else {
-        companies = companiesDefault.map(c => ({
+/* ====== INIT ====== */
+function init(){
+    const save = localStorage.getItem("tradingSave");
+    if(save){
+        ({cash,companies,selected} = JSON.parse(save));
+    }else{
+        companies = BASE_COMPANIES.map(c=>({
             ...c,
-            shares: 0,
-            avg: 0,
-            history: [c.price],
-            buys: [],
-            realized: 0,
-            totalBuys: 0
+            shares:0,
+            avg:0,
+            realized:0,
+            history:[c.price],
+            buys:[]
         }));
     }
+    render();
 }
-load();
+init();
 
-/* ================= MARKET ================= */
-function updatePrices() {
-    companies.forEach(c => {
-        const rnd = (Math.random() - 0.5) * c.vol;
-        c.price = Math.max(0.01, c.price * (1 + rnd));
+/* ====== SIMULATION ====== */
+setInterval(()=>{
+    companies.forEach(c=>{
+        const r = (Math.random()-0.5)*c.vol;
+        c.price = Math.max(0.1,c.price*(1+r));
         c.history.push(c.price);
-        if (c.history.length > 600) c.history.shift();
+        if(c.history.length>300) c.history.shift();
     });
     save();
-}
+    render();
+},450);
 
-/* ================= TRADING ================= */
-function buy(i) {
-    const c = companies[i];
-    if (capital >= c.price) {
-        capital -= c.price;
-        c.avg = (c.avg * c.shares + c.price) / (c.shares + 1);
+/* ====== ACTIONS ====== */
+function buy(i){
+    const c=companies[i];
+    if(cash>=c.price){
+        cash-=c.price;
+        c.avg=(c.avg*c.shares+c.price)/(c.shares+1);
         c.shares++;
-        c.totalBuys++;
-
-        // IMPORTANT : on stocke le PRIX D'ACHAT
-        c.buys.push({
-            index: c.history.length - 1,
-            price: c.price
-        });
-
-        save();
+        c.buys.push({index:c.history.length-1,price:c.price});
     }
 }
-
-function sell(i) {
-    const c = companies[i];
-    if (c.shares > 0) {
-        capital += c.price;
-        c.realized += (c.price - c.avg);
+function sell(i){
+    const c=companies[i];
+    if(c.shares>0){
+        cash+=c.price;
+        c.realized+=(c.price-c.avg);
         c.shares--;
-        if (c.shares === 0) c.avg = 0;
-        save();
+        if(c.shares===0) c.avg=0;
     }
 }
 
-/* ================= UI ================= */
-function renderTrading() {
-    const view = tradingView;
-    view.innerHTML = "";
+/* ====== RENDER ====== */
+function render(){
+    renderHeader();
+    renderCompanies();
+    drawChart();
+    renderDetails();
+    renderStats();
+}
 
-    const totalValue = capital + companies.reduce((s,c)=>s+c.shares*c.price,0);
-    const totalGain = companies.reduce((s,c)=>s+c.realized+(c.price-c.avg)*c.shares,0);
+function renderHeader(){
+    const totalStocks=companies.reduce((s,c)=>s+c.shares*c.price,0);
+    const realized=companies.reduce((s,c)=>s+c.realized,0);
+    document.getElementById("cash").textContent=cash.toFixed(2)+" €";
+    document.getElementById("total").textContent=(cash+totalStocks).toFixed(2)+" €";
+    const g=realized+totalStocks-companies.reduce((s,c)=>s+c.shares*c.avg,0);
+    document.getElementById("global").textContent=g.toFixed(2)+" €";
+    document.getElementById("global").className=g>=0?"green":"red";
+}
 
-    view.innerHTML += `
-    <div class="card top-stats">
-        <div class="stat"><span>Capital</span><strong>${capital.toFixed(2)} €</strong></div>
-        <div class="stat"><span>Portefeuille</span><strong>${totalValue.toFixed(2)} €</strong></div>
-        <div class="stat"><span>Gain global</span><strong class="${totalGain>=0?'gain pos':'gain neg'}">${totalGain.toFixed(2)} €</strong></div>
-    </div>`;
-
+function renderCompanies(){
+    const div=document.getElementById("companies");
+    div.innerHTML="";
     companies.forEach((c,i)=>{
-        const latent = (c.price - c.avg) * c.shares;
-        view.innerHTML += `
-        <div class="company ${i===selected?'selected':''}" onclick="selected=${i}">
-            <div>${c.name}</div>
-            <div class="price">${c.price.toFixed(2)} €</div>
-            <div>${c.shares}</div>
-            <div class="gain ${latent>=0?'pos':'neg'}">${latent.toFixed(2)} €</div>
-            <div>
-                <button class="buy" onclick="event.stopPropagation();buy(${i})">Acheter</button>
-                <button class="sell" onclick="event.stopPropagation();sell(${i})">Vendre</button>
-            </div>
+        const gain=(c.price-c.avg)*c.shares;
+        const d=document.createElement("div");
+        d.className="card company";
+        d.onclick=()=>selected=i;
+        d.innerHTML=`
+        <div class="row">
+            <b>${c.name}</b>
+            <span>${c.price.toFixed(2)} €</span>
+        </div>
+        <div class="row">
+            <span>Parts: ${c.shares}</span>
+            <span class="${gain>=0?'green':'red'}">${gain.toFixed(2)} €</span>
+        </div>
+        <div class="row">
+            <button class="btn buy" onclick="event.stopPropagation();buy(${i})">Acheter</button>
+            <button class="btn sell" onclick="event.stopPropagation();sell(${i})">Vendre</button>
         </div>`;
+        div.appendChild(d);
     });
 }
 
-/* ================= CHART ================= */
-const ctx = chart.getContext("2d");
+/* ====== GRAPH ====== */
+function drawChart(){
+    const c=companies[selected];
+    const ctx=document.getElementById("chart").getContext("2d");
+    ctx.clearRect(0,0,600,320);
 
-function drawChart() {
-    ctx.clearRect(0,0,chart.width,chart.height);
-    const c = companies[selected];
-    const windowSize = 60;
-    const data = c.history.slice(-windowSize);
+    const data=c.history.slice(-windowSize);
+    const min=Math.min(...data);
+    const max=Math.max(...data);
+    const pad=(max-min)*0.15||1;
 
-    let min = Math.min(...data);
-    let max = Math.max(...data);
-    const margin = (max - min) * 0.15 || 1;
-    min -= margin;
-    max += margin;
-
-    const clamp = v => Math.max(min, Math.min(max, v));
-
-    // Courbe
-    ctx.strokeStyle = "#3b82f6";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle="#3b82f6";
     ctx.beginPath();
     data.forEach((p,i)=>{
-        const x = i/(windowSize-1)*chart.width;
-        const y = chart.height - (clamp(p)-min)/(max-min)*chart.height;
-        i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+        const x=i/(windowSize-1)*600;
+        const y=320-(p-(min-pad))/(max-min+pad*2)*320;
+        i?ctx.lineTo(x,y):ctx.moveTo(x,y);
     });
     ctx.stroke();
 
-    // Points d'achat (FIXES)
-    ctx.fillStyle = "#22c55e";
-    const start = c.history.length - windowSize;
-
-    c.buys.forEach(buy=>{
-        if (buy.index >= start) {
-            const i = buy.index - start;
-            const x = i/(windowSize-1)*chart.width;
-            const y = chart.height - (clamp(buy.price)-min)/(max-min)*chart.height;
+    ctx.fillStyle="#22c55e";
+    c.buys.forEach(b=>{
+        const start=c.history.length-windowSize;
+        if(b.index>=start){
+            const i=b.index-start;
+            const x=i/(windowSize-1)*600;
+            const y=320-(b.price-(min-pad))/(max-min+pad*2)*320;
             ctx.beginPath();
             ctx.arc(x,y,4,0,Math.PI*2);
             ctx.fill();
         }
     });
-
-    // Ligne prix actuel
-    const y = chart.height - (clamp(c.price)-min)/(max-min)*chart.height;
-    ctx.strokeStyle = "#ffffff55";
-    ctx.beginPath();
-    ctx.moveTo(0,y);
-    ctx.lineTo(chart.width,y);
-    ctx.stroke();
 }
 
-/* ================= DETAILS ================= */
-function renderDetails() {
-    const c = companies[selected];
-    const latent = (c.price - c.avg) * c.shares;
-    details.innerHTML = `
-        <h3>${c.name}</h3>
-        Prix actuel : ${c.price.toFixed(2)} €<br>
-        Prix moyen : ${c.avg.toFixed(2)} €<br>
-        Parts : ${c.shares}<br>
-        Gain latent : <span class="${latent>=0?'gain pos':'gain neg'}">${latent.toFixed(2)} €</span>
-    `;
+/* ====== DETAILS ====== */
+function renderDetails(){
+    const c=companies[selected];
+    const gain=(c.price-c.avg)*c.shares;
+    document.getElementById("details").innerHTML=`
+    <b>${c.name}</b><br>
+    Prix actuel: ${c.price.toFixed(2)} €<br>
+    Prix moyen: ${c.avg.toFixed(2)} €<br>
+    Parts: ${c.shares}<br>
+    Gain latent: <span class="${gain>=0?'green':'red'}">${gain.toFixed(2)} €</span>`;
 }
 
-/* ================= STATS ================= */
-function renderStats() {
-    let html = `<h3>Statistiques</h3><table>
-    <tr><th>Entreprise</th><th>Achats</th><th>Réalisé</th><th>Latent</th><th>Total</th></tr>`;
+/* ====== STATS ====== */
+function renderStats(){
+    const t=document.getElementById("statsTable");
+    t.innerHTML="<tr><th>Entreprise</th><th>Réalisé</th><th>Latent</th><th>Total</th></tr>";
     companies.forEach(c=>{
-        const latent = (c.price - c.avg) * c.shares;
-        const total = latent + c.realized;
-        html += `
+        const latent=(c.price-c.avg)*c.shares;
+        t.innerHTML+=`
         <tr>
             <td>${c.name}</td>
-            <td>${c.totalBuys}</td>
-            <td class="${c.realized>=0?'gain pos':'gain neg'}">${c.realized.toFixed(2)}</td>
-            <td class="${latent>=0?'gain pos':'gain neg'}">${latent.toFixed(2)}</td>
-            <td class="${total>=0?'gain pos':'gain neg'}">${total.toFixed(2)}</td>
+            <td>${c.realized.toFixed(2)}</td>
+            <td>${latent.toFixed(2)}</td>
+            <td>${(latent+c.realized).toFixed(2)}</td>
         </tr>`;
     });
-    html += "</table>";
-    statsView.innerHTML = html;
 }
 
-/* ================= TABS ================= */
-tabTrading.onclick = () => {
-    tradingView.style.display="block";
-    statsView.style.display="none";
-    tabTrading.classList.add("active");
-    tabStats.classList.remove("active");
-};
-
-tabStats.onclick = () => {
-    tradingView.style.display="none";
-    statsView.style.display="block";
-    tabStats.classList.add("active");
-    tabTrading.classList.remove("active");
-};
-
-/* ================= LOOPS ================= */
-setInterval(updatePrices, 300);
-
-setInterval(()=>{
-    renderTrading();
-    renderDetails();
-    renderStats();
-    drawChart();
-},480);
+/* ====== UTILS ====== */
+function save(){
+    localStorage.setItem("tradingSave",JSON.stringify({cash,companies,selected}));
+}
+function switchTab(t){
+    document.getElementById("tradingTab").style.display=t==="trading"?"block":"none";
+    document.getElementById("statsTab").style.display=t==="stats"?"block":"none";
+    document.querySelectorAll(".tab").forEach(e=>e.classList.remove("active"));
+    event.target.classList.add("active");
+}
 </script>
-
 </body>
 </html>
