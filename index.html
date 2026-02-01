@@ -5,113 +5,58 @@
 <title>Simulateur de Trading</title>
 
 <style>
-/* ===== THEME ===== */
+/* ================= THEME GLOBAL ================= */
 body {
     margin: 0;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: Inter, Arial, sans-serif;
     background: #0e1117;
     color: #e5e7eb;
 }
 
-h2, h3 {
-    margin: 0 0 10px 0;
-}
+h3 { margin: 0 0 8px 0; }
 
 .container {
     display: flex;
-    height: 100vh;
+    height: calc(100vh - 60px);
 }
 
-/* ===== LEFT PANEL ===== */
+/* ================= TABS ================= */
+.tabs {
+    display: flex;
+    padding: 12px;
+    background: #0b1220;
+    border-bottom: 1px solid #1f2937;
+}
+
+.tab {
+    margin-right: 12px;
+    padding: 8px 18px;
+    border-radius: 999px;
+    background: #1f2633;
+    cursor: pointer;
+    font-weight: 600;
+    opacity: 0.7;
+    transition: all 0.15s ease;
+}
+
+.tab:hover {
+    opacity: 1;
+    transform: translateY(-1px);
+}
+
+.tab.active {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    box-shadow: 0 6px 16px #2563eb66;
+    opacity: 1;
+}
+
+/* ================= PANELS ================= */
 .left {
     width: 45%;
     padding: 15px;
     overflow-y: auto;
 }
 
-.card {
-    background: #161b22;
-    border-radius: 12px;
-    padding: 12px;
-    margin-bottom: 12px;
-}
-
-/* ===== TOP STATS ===== */
-.top-stats {
-    display: flex;
-    justify-content: space-between;
-}
-
-.stat {
-    text-align: center;
-}
-
-.stat span {
-    display: block;
-    font-size: 14px;
-    opacity: 0.7;
-}
-
-.stat strong {
-    font-size: 18px;
-}
-
-/* ===== COMPANY LIST ===== */
-.company {
-    display: grid;
-    grid-template-columns: 1fr 90px 70px 110px 120px;
-    align-items: center;
-    gap: 8px;
-    padding: 8px;
-    border-radius: 8px;
-    cursor: pointer;
-}
-
-.company:hover {
-    background: #1f2633;
-}
-
-.company.selected {
-    background: #2563eb33;
-}
-
-.price {
-    text-align: right;
-}
-
-.gain.pos { color: #22c55e; }
-.gain.neg { color: #ef4444; }
-
-/* ===== BUTTONS ===== */
-button {
-    border: none;
-    border-radius: 8px;
-    padding: 6px 10px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: transform 0.1s, opacity 0.1s;
-}
-
-button:active {
-    transform: scale(0.95);
-}
-
-.buy {
-    background: #22c55e;
-    color: #000;
-}
-
-.sell {
-    background: #ef4444;
-    color: #000;
-}
-
-button:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-/* ===== RIGHT PANEL ===== */
 .right {
     width: 55%;
     padding: 15px;
@@ -119,30 +64,91 @@ button:disabled {
     flex-direction: column;
 }
 
+/* ================= CARDS ================= */
+.card {
+    background: #161b22;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 14px;
+}
+
+/* ================= STATS HEADER ================= */
+.top-stats {
+    display: flex;
+    justify-content: space-between;
+    text-align: center;
+}
+
+.stat span {
+    font-size: 13px;
+    opacity: 0.6;
+}
+
+.stat strong {
+    font-size: 18px;
+}
+
+/* ================= COMPANY LIST ================= */
+.company {
+    display: grid;
+    grid-template-columns: 1fr 90px 70px 110px 150px;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.company:hover {
+    background: #1f2633;
+}
+
+.company.selected {
+    background: linear-gradient(90deg, #2563eb22, transparent);
+    border-left: 3px solid #2563eb;
+}
+
+.price { text-align: right; }
+
+.gain.pos { color: #22c55e; }
+.gain.neg { color: #ef4444; }
+
+/* ================= BUTTONS ================= */
+button {
+    border: none;
+    border-radius: 10px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: all 0.12s ease;
+}
+
+.buy {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    box-shadow: 0 4px 12px #22c55e55;
+}
+
+.sell {
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    box-shadow: 0 4px 12px #ef444455;
+}
+
+.buy:hover, .sell:hover {
+    transform: translateY(-1px);
+}
+
+.buy:active, .sell:active {
+    transform: scale(0.96);
+}
+
+/* ================= CANVAS ================= */
 canvas {
     background: #0b1220;
-    border-radius: 12px;
+    border-radius: 14px;
 }
 
-/* ===== TABS ===== */
-.tabs {
-    display: flex;
-    margin-bottom: 10px;
-}
-
-.tab {
-    margin-right: 10px;
-    padding: 6px 14px;
-    border-radius: 8px;
-    background: #1f2633;
-    cursor: pointer;
-}
-
-.tab.active {
-    background: #2563eb;
-}
-
-/* ===== STATS TABLE ===== */
+/* ================= TABLE STATS ================= */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -154,7 +160,7 @@ th, td {
 }
 
 th {
-    opacity: 0.7;
+    opacity: 0.6;
 }
 
 td:first-child, th:first-child {
@@ -164,6 +170,7 @@ td:first-child, th:first-child {
 </head>
 
 <body>
+
 <div class="tabs">
     <div class="tab active" id="tabTrading">Trading</div>
     <div class="tab" id="tabStats">Stats</div>
@@ -171,37 +178,49 @@ td:first-child, th:first-child {
 
 <div class="container">
     <div class="left" id="tradingView"></div>
+
     <div class="right">
-        <canvas id="chart" width="700" height="350"></canvas>
+        <canvas id="chart" width="720" height="360"></canvas>
         <div class="card" id="details"></div>
         <div class="card" id="statsView" style="display:none;"></div>
     </div>
 </div>
 
 <script>
-/* ===================== DATA ===================== */
-const STORAGE_KEY = "trading_sim_v1";
+/* ================= CONFIG ================= */
+const STORAGE_KEY = "trading_sim_full";
 let capital = 2000;
+let selected = 0;
 
+/* ================= ENTREPRISES (20+) ================= */
 const companiesDefault = [
-    { name:"AlphaTech", price:50, vol:0.004 },
-    { name:"GreenEnergy", price:40, vol:0.003 },
-    { name:"MedLife", price:65, vol:0.002 },
-    { name:"FinCorp", price:80, vol:0.003 },
-    { name:"AutoDrive", price:55, vol:0.004 },
-    { name:"Foodies", price:30, vol:0.002 },
-    { name:"CloudNet", price:90, vol:0.004 },
-    { name:"AeroSpace", price:120, vol:0.003 },
-    { name:"RetailX", price:25, vol:0.005 },
-    { name:"CryptoX", price:100, vol:0.05 } // très volatile
+    {name:"AlphaTech", price:50, vol:0.004},
+    {name:"GreenEnergy", price:42, vol:0.003},
+    {name:"MedLife", price:68, vol:0.002},
+    {name:"FinCorp", price:82, vol:0.003},
+    {name:"AutoDrive", price:55, vol:0.004},
+    {name:"Foodies", price:30, vol:0.002},
+    {name:"CloudNet", price:95, vol:0.004},
+    {name:"AeroSpace", price:120, vol:0.003},
+    {name:"RetailX", price:25, vol:0.005},
+    {name:"NanoSoft", price:70, vol:0.004},
+    {name:"BioGen", price:60, vol:0.003},
+    {name:"EnergyPlus", price:48, vol:0.003},
+    {name:"Oceanic", price:34, vol:0.002},
+    {name:"RoboTech", price:110, vol:0.005},
+    {name:"MetaWorld", price:90, vol:0.006},
+    {name:"SpaceNova", price:140, vol:0.004},
+    {name:"AgriCore", price:28, vol:0.002},
+    {name:"PayLink", price:75, vol:0.004},
+    {name:"CryptoLite", price:60, vol:0.02},
+    {name:"CryptoX", price:100, vol:0.06}
 ];
 
 let companies = [];
-let selected = 0;
 
-/* ===================== LOAD / SAVE ===================== */
+/* ================= LOAD / SAVE ================= */
 function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ capital, companies }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({capital, companies}));
 }
 
 function load() {
@@ -224,19 +243,19 @@ function load() {
 }
 load();
 
-/* ===================== MARKET ===================== */
+/* ================= MARKET ENGINE ================= */
 function updatePrices() {
     companies.forEach(c => {
         const rnd = (Math.random() - 0.5) * c.vol;
         c.price *= (1 + rnd);
         c.price = Math.max(0.01, c.price);
         c.history.push(c.price);
-        if (c.history.length > 500) c.history.shift();
+        if (c.history.length > 600) c.history.shift();
     });
     save();
 }
 
-/* ===================== BUY / SELL ===================== */
+/* ================= TRADING ================= */
 function buy(i) {
     const c = companies[i];
     if (capital >= c.price) {
@@ -260,7 +279,7 @@ function sell(i) {
     }
 }
 
-/* ===================== UI ===================== */
+/* ================= UI ================= */
 function renderTrading() {
     const view = document.getElementById("tradingView");
     view.innerHTML = "";
@@ -278,7 +297,7 @@ function renderTrading() {
     companies.forEach((c,i)=>{
         const latent = (c.price - c.avg) * c.shares;
         view.innerHTML += `
-        <div class="company ${i===selected?'selected':''}" onclick="selectCompany(${i})">
+        <div class="company ${i===selected?'selected':''}" onclick="selected=${i}">
             <div>${c.name}</div>
             <div class="price">${c.price.toFixed(2)} €</div>
             <div>${c.shares}</div>
@@ -291,11 +310,7 @@ function renderTrading() {
     });
 }
 
-function selectCompany(i){
-    selected = i;
-}
-
-/* ===================== CHART ===================== */
+/* ================= CHART ================= */
 const canvas = document.getElementById("chart");
 const ctx = canvas.getContext("2d");
 
@@ -307,7 +322,7 @@ function drawChart() {
 
     let min = Math.min(...data);
     let max = Math.max(...data);
-    const margin = (max-min)*0.1 || 1;
+    const margin = (max - min) * 0.15 || 1;
     min -= margin; max += margin;
 
     const clamp = v => Math.max(min, Math.min(max, v));
@@ -317,11 +332,10 @@ function drawChart() {
     data.forEach((p,i)=>{
         const x = i/(windowSize-1)*canvas.width;
         const y = canvas.height - (clamp(p)-min)/(max-min)*canvas.height;
-        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
     });
     ctx.stroke();
 
-    // buy points
     ctx.fillStyle = "#22c55e";
     c.buys.forEach(b=>{
         if(b >= c.history.length-windowSize){
@@ -335,7 +349,6 @@ function drawChart() {
         }
     });
 
-    // current price line
     const y = canvas.height - (clamp(c.price)-min)/(max-min)*canvas.height;
     ctx.strokeStyle = "#ffffff55";
     ctx.beginPath();
@@ -344,11 +357,11 @@ function drawChart() {
     ctx.stroke();
 }
 
-/* ===================== DETAILS ===================== */
+/* ================= DETAILS ================= */
 function renderDetails() {
     const c = companies[selected];
     const latent = (c.price - c.avg) * c.shares;
-    document.getElementById("details").innerHTML = `
+    details.innerHTML = `
         <h3>${c.name}</h3>
         Prix actuel : ${c.price.toFixed(2)} €<br>
         Prix moyen : ${c.avg.toFixed(2)} €<br>
@@ -357,10 +370,10 @@ function renderDetails() {
     `;
 }
 
-/* ===================== STATS ===================== */
-function renderStats(){
+/* ================= STATS ================= */
+function renderStats() {
     let html = `<h3>Statistiques</h3><table>
-    <tr><th>Entreprise</th><th>Parts achetées</th><th>Réalisé</th><th>Latent</th><th>Total</th></tr>`;
+    <tr><th>Entreprise</th><th>Achats</th><th>Réalisé</th><th>Latent</th><th>Total</th></tr>`;
     companies.forEach(c=>{
         const latent = (c.price - c.avg) * c.shares;
         const total = latent + c.realized;
@@ -374,25 +387,25 @@ function renderStats(){
         </tr>`;
     });
     html += "</table>";
-    document.getElementById("statsView").innerHTML = html;
+    statsView.innerHTML = html;
 }
 
-/* ===================== TABS ===================== */
-tabTrading.onclick = ()=>{
+/* ================= TABS ================= */
+tabTrading.onclick = () => {
     tradingView.style.display="block";
     statsView.style.display="none";
     tabTrading.classList.add("active");
     tabStats.classList.remove("active");
 };
 
-tabStats.onclick = ()=>{
+tabStats.onclick = () => {
     tradingView.style.display="none";
     statsView.style.display="block";
     tabStats.classList.add("active");
     tabTrading.classList.remove("active");
 };
 
-/* ===================== LOOP ===================== */
+/* ================= LOOP ================= */
 setInterval(()=>{
     updatePrices();
     renderTrading();
@@ -401,5 +414,6 @@ setInterval(()=>{
     drawChart();
 },300);
 </script>
+
 </body>
 </html>
