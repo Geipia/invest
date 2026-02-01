@@ -1,479 +1,325 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<title>Trading Simulator Pro</title>
+<meta charset="UTF-8" />
+<title>Simulateur de Trading</title>
 <style>
 :root{
-  --bg:#0e1117;
-  --panel:#161b22;
-  --card:#1f2633;
-  --text:#e6edf3;
-  --muted:#8b949e;
-  --green:#2ea043;
-  --red:#f85149;
-  --blue:#58a6ff;
+  --bg:#0b0f14;
+  --panel:#121823;
+  --card:#161d2b;
+  --text:#e6e9ef;
+  --muted:#8b93a7;
+  --blue:#3aa0ff;
+  --green:#2ecc71;
+  --red:#e74c3c;
 }
-*{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
+*{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);overflow:hidden}
 #app{display:flex;height:100%}
-
-/* SIDEBAR */
-#sidebar{
-  width:340px;min-width:340px;
-  background:var(--panel);
-  display:flex;flex-direction:column;
-  border-right:1px solid #222;
-}
-.card{
-  background:var(--card);
-  border-radius:12px;
-  padding:14px;
-  margin:10px;
-}
-.portfolio-values{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px}
-.value{font-weight:600}
-.positive{color:var(--green)}
-.negative{color:var(--red)}
-
-#search{
-  width:calc(100% - 20px);
-  margin:0 10px 10px 10px;
-  padding:10px;
-  border-radius:10px;
-  border:none;
-  background:#0b1220;
-  color:var(--text);
-  outline:none;
-}
-
-#companies{
-  flex:1;overflow:auto;padding-bottom:10px
-}
-.company{
-  display:grid;
-  grid-template-columns:1fr auto;
-  gap:8px;
-  padding:10px;
-  margin:6px 10px;
-  background:#0b1220;
-  border-radius:10px;
-  cursor:pointer;
-}
-.company.selected{outline:2px solid var(--blue)}
-.company-name{font-weight:600}
-.company-info{font-size:12px;color:var(--muted)}
-.company-actions{
-  display:flex;gap:6px;align-items:center
-}
-.btn{
-  width:28px;height:28px;border-radius:6px;
-  border:none;cursor:pointer;
-  background:#1f6feb;color:white;
-  font-weight:700;
-}
-.btn.sell{background:#da3633}
-.btn:active{transform:scale(.92)}
-.flash{animation:flash .3s}
-@keyframes flash{
-  from{background:#1f6feb}
-  to{background:#0b1220}
-}
-
-/* MAIN */
-#main{flex:1;display:flex;flex-direction:column}
-#tabs{display:flex;gap:10px;padding:10px}
-.tab{
-  padding:10px 16px;
-  border-radius:10px;
-  background:#0b1220;
-  cursor:pointer;
-}
+aside{width:340px;background:var(--panel);padding:12px;display:flex;flex-direction:column;gap:10px}
+main{flex:1;padding:12px;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--card);border-radius:12px;padding:12px}
+h3{margin:0 0 6px 0;font-size:14px;color:#cfd6e6}
+.small{font-size:12px;color:var(--muted)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.portfolio strong{font-size:18px}
+.search input{width:100%;padding:8px;border-radius:8px;border:0;background:#0f1522;color:var(--text)}
+.list{flex:1;overflow:auto}
+.company{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;padding:8px;border-radius:8px;cursor:pointer}
+.company:hover{background:#1b2436}
+.company.active{outline:1px solid var(--blue)}
+.btn{width:28px;height:28px;border-radius:50%;border:0;color:#fff;cursor:pointer}
+.buy{background:var(--green)}
+.sell{background:var(--red)}
+.tabs{display:flex;gap:8px}
+.tab{padding:8px 12px;border-radius:8px;background:#0f1522;cursor:pointer}
 .tab.active{background:var(--blue)}
-#content{flex:1;padding:10px;overflow:auto}
-
-#chart-container{background:var(--card);border-radius:12px;padding:10px}
-#chart{width:100%;height:300px}
-
-#chart-info{
-  display:grid;grid-template-columns:repeat(5,1fr);
-  gap:8px;margin-top:10px;font-size:14px
-}
-
-/* STATS */
-table{width:100%;border-collapse:collapse}
-th,td{padding:8px;border-bottom:1px solid #222;text-align:right}
-th:first-child,td:first-child{text-align:left}
-
-/* AI */
-.ai-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px
-}
-.ai-box{background:var(--card);border-radius:12px;padding:12px}
-.toggle{
-  display:flex;align-items:center;gap:10px
-}
-.toggle input{transform:scale(1.4)}
+.canvas-wrap{flex:1;position:relative}
+canvas{width:100%;height:100%;background:#0f1522;border-radius:12px}
+.info{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.table{width:100%;border-collapse:collapse;font-size:12px}
+.table th,.table td{padding:6px;border-bottom:1px solid #1f2a3d;text-align:right}
+.table th:first-child,.table td:first-child{text-align:left}
+.toggle{display:flex;align-items:center;gap:8px}
+.toggle input{accent-color:var(--blue)}
+.green{color:var(--green)}
+.red{color:var(--red)}
 </style>
 </head>
 <body>
 <div id="app">
-  <div id="sidebar">
-    <div class="card" id="portfolioCard"></div>
-    <input id="search" placeholder="Rechercher une entreprise…">
-    <div id="companies"></div>
+<aside>
+  <div class="card portfolio">
+    <h3>Portefeuille</h3>
+    <div class="row"><span>Capital</span><strong id="capital"></strong></div>
+    <div class="row"><span>Valeur totale</span><strong id="total"></strong></div>
+    <div class="row"><span>Gain latent</span><strong id="latent"></strong></div>
+  </div>
+  <div class="card search">
+    <input id="search" placeholder="Rechercher une entreprise..." />
+  </div>
+  <div class="card list" id="list"></div>
+</aside>
+<main>
+  <div class="tabs">
+    <div class="tab active" data-tab="chart">Graphique</div>
+    <div class="tab" data-tab="stats">Stats</div>
+    <div class="tab" data-tab="ai">IA / Auto</div>
   </div>
 
-  <div id="main">
-    <div id="tabs">
-      <div class="tab active" data-tab="chart">Graphique</div>
-      <div class="tab" data-tab="stats">Stats</div>
-      <div class="tab" data-tab="ai">IA / Trading automatique</div>
-    </div>
-    <div id="content"></div>
+  <div class="card canvas-wrap" id="chartTab">
+    <canvas id="chart"></canvas>
+    <div class="info small" id="chartInfo"></div>
   </div>
+
+  <div class="card" id="statsTab" style="display:none">
+    <table class="table" id="statsTable"></table>
+  </div>
+
+  <div class="card" id="aiTab" style="display:none">
+    <div class="row">
+      <div>
+        <div id="aiSuggestion"></div>
+        <div class="small" id="aiDetails"></div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="autoToggle"/> Auto
+      </label>
+    </div>
+  </div>
+</main>
 </div>
 
 <script>
 (()=>{
 
-/* ===================== DATA ===================== */
-const STORAGE_KEY="trading_sim_v1";
-const UPDATE_MS=450;
+const STORE='sim-trading-v1';
+const TICK=450;
 const MAX_POINTS=60;
 
-const sectors=["Tech","Énergie","Santé","Finance","Transport","Industrie","IA","Télécom"];
-const names=[
-"Novatek","Helion","Aurexia","Finor","Transvia","MediCore","BluePeak","Quantyx",
-"Solaris","NeuroSys","Cryptron","Axiom","Vertex","Nexis","Orbital","Valora",
-"Zenith","Lumera","Stratos","Omnix","Echelon","Pulsar","Virex","Atlas",
-"Corelia","Dynatek","Equinox","Fluxa","Horizon","Innova","Kryos","Lynx",
-"Momentum","Nautic","Optima","Paragon","Quanta","Radian","Synex","Titan",
-"Ultrix","Vantage","Waveon","Xentis","Yielda","Zypher","Aerion","Boreal"
-];
+const rnd=(a,b)=>a+Math.random()*(b-a);
 
-function createCompanies(){
-  return names.slice(0,50).map(n=>{
-    const price=20+Math.random()*200;
-    return{
-      name:n+" "+sectors[Math.floor(Math.random()*sectors.length)],
-      price,
-      volatility:0.002+Math.random()*0.01,
-      shares:0,
-      averagePrice:0,
-      history:[price],
-      buys:[],
-      realizedGain:0
-    };
-  });
-}
+const makeCompanies=()=>{
+  const sectors=['Tech','Energie','Santé','Finance','Transport','Industriel'];
+  return Array.from({length:50},(_,i)=>({
+    name:`${sectors[i%sectors.length]}Corp ${i+1}`,
+    price:rnd(10,200),
+    volatility:rnd(0.002,0.02),
+    shares:0,
+    averagePrice:0,
+    history:[],
+    buys:[],
+    realizedGain:0
+  }));
+};
 
-let state={
+let state=JSON.parse(localStorage.getItem(STORE))||{
   capital:2000,
-  companies:createCompanies(),
+  companies:makeCompanies(),
   selected:0,
   auto:false
 };
 
-/* ===================== LOAD / SAVE ===================== */
-function save(){
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
-}
-function load(){
-  const s=localStorage.getItem(STORAGE_KEY);
-  if(s){
-    try{state=JSON.parse(s);}catch(e){}
+const $=id=>document.getElementById(id);
+const ctx=$('chart').getContext('2d');
+
+const save=()=>localStorage.setItem(STORE,JSON.stringify(state));
+
+const portfolioValue=()=>{
+  let v=state.capital;
+  state.companies.forEach(c=>v+=c.shares*c.price);
+  return v;
+};
+
+const latentGain=c=>(c.price-c.averagePrice)*c.shares;
+
+const updatePrices=()=>{
+  state.companies.forEach(c=>{
+    const change=1+rnd(-c.volatility,c.volatility);
+    c.price=Math.max(0.01,c.price*change);
+    c.history.push(c.price);
+    if(c.history.length>MAX_POINTS*3)c.history.shift();
+  });
+};
+
+const buy=c=>{
+  if(state.capital>=c.price){
+    state.capital-=c.price;
+    c.averagePrice=(c.averagePrice*c.shares+c.price)/(c.shares+1);
+    c.shares++;
+    c.buys.push({price:c.price,idx:c.history.length-1});
+    save();
   }
-}
-load();
+};
 
-/* ===================== HELPERS ===================== */
-const $=q=>document.querySelector(q);
-function fmt(n){return n.toFixed(2)+" €";}
-function latent(c){return (c.price-c.averagePrice)*c.shares;}
-function portfolioValue(){
-  return state.capital+state.companies.reduce((a,c)=>a+c.price*c.shares,0);
-}
+const sell=c=>{
+  if(c.shares>0){
+    state.capital+=c.price;
+    c.realizedGain+=(c.price-c.averagePrice);
+    c.shares--;
+    if(c.shares===0)c.averagePrice=0;
+    save();
+  }
+};
 
-/* ===================== SIDEBAR ===================== */
-function renderPortfolio(){
-  const latentTotal=state.companies.reduce((a,c)=>a+latent(c),0);
-  $("#portfolioCard").innerHTML=`
-    <div class="portfolio-values">
-      <div>Capital</div><div class="value">${fmt(state.capital)}</div>
-      <div>Valeur totale</div><div class="value">${fmt(portfolioValue())}</div>
-      <div>Gain latent</div>
-      <div class="value ${latentTotal>=0?"positive":"negative"}">${fmt(latentTotal)}</div>
-    </div>
-  `;
-}
-
-function renderCompanies(){
-  const q=$("#search").value.toLowerCase();
-  const list=[...state.companies]
+const renderList=()=>{
+  const q=$('search').value.toLowerCase();
+  const list=$('list');
+  list.innerHTML='';
+  [...state.companies]
     .filter(c=>c.name.toLowerCase().includes(q))
-    .sort((a,b)=>b.shares-a.shares);
-  const wrap=$("#companies");
-  wrap.innerHTML="";
-  list.forEach(c=>{
-    const idx=state.companies.indexOf(c);
-    const div=document.createElement("div");
-    div.className="company"+(idx===state.selected?" selected":"");
-    div.onclick=()=>{state.selected=idx;renderAll();};
-    const g=latent(c);
-    div.innerHTML=`
-      <div>
-        <div class="company-name">${c.name}</div>
-        <div class="company-info">
-          ${fmt(c.price)} • ${c.shares} parts • 
-          <span class="${g>=0?"positive":"negative"}">${fmt(g)}</span>
+    .sort((a,b)=>b.shares-a.shares)
+    .forEach((c,i)=>{
+      const idx=state.companies.indexOf(c);
+      const d=document.createElement('div');
+      d.className='company'+(idx===state.selected?' active':'');
+      d.onclick=()=>{state.selected=idx;renderAll()};
+      d.innerHTML=`
+        <div>
+          <div>${c.name}</div>
+          <div class="small">${c.price.toFixed(2)} € | ${c.shares} parts</div>
         </div>
-      </div>
-      <div class="company-actions">
-        <button class="btn" title="Acheter">+</button>
-        <button class="btn sell" title="Vendre">−</button>
-      </div>
-    `;
-    const [buyBtn,sellBtn]=div.querySelectorAll("button");
-    buyBtn.onclick=e=>{
-      e.stopPropagation();
-      if(state.capital>=c.price){
-        state.capital-=c.price;
-        c.averagePrice=(c.averagePrice*c.shares+c.price)/(c.shares+1);
-        c.shares++;
-        c.buys.push({price:c.price,idx:c.history.length-1});
-        div.classList.add("flash");
-      }
-    };
-    sellBtn.onclick=e=>{
-      e.stopPropagation();
-      if(c.shares>0){
-        state.capital+=c.price;
-        c.shares--;
-        c.realizedGain+=c.price-c.averagePrice;
-        if(c.shares===0)c.averagePrice=0;
-        div.classList.add("flash");
-      }
-    };
-    wrap.appendChild(div);
-  });
-}
+        <button class="btn buy">+</button>
+        <button class="btn sell">−</button>`;
+      d.querySelector('.buy').onclick=e=>{e.stopPropagation();buy(c)};
+      d.querySelector('.sell').onclick=e=>{e.stopPropagation();sell(c)};
+      list.appendChild(d);
+    });
+};
 
-/* ===================== CHART ===================== */
-const canvas=document.createElement("canvas");
-canvas.id="chart";
-let ctx=canvas.getContext("2d");
+const renderPortfolio=()=>{
+  $('capital').textContent=state.capital.toFixed(2)+' €';
+  $('total').textContent=portfolioValue().toFixed(2)+' €';
+  const g=state.companies.reduce((s,c)=>s+latentGain(c),0);
+  const el=$('latent');
+  el.textContent=g.toFixed(2)+' €';
+  el.className=g>=0?'green':'red';
+};
 
-function renderChart(){
-  const cont=$("#content");
-  cont.innerHTML="";
-  const box=document.createElement("div");
-  box.id="chart-container";
-  box.appendChild(canvas);
-  cont.appendChild(box);
-
-  const info=document.createElement("div");
-  info.id="chart-info";
-  cont.appendChild(info);
-
-  resize();
-  draw();
-}
-
-function resize(){
-  canvas.width=canvas.clientWidth;
-  canvas.height=canvas.clientHeight;
-}
-
-function draw(){
+const drawChart=()=>{
   const c=state.companies[state.selected];
-  const h=c.history.slice(-MAX_POINTS);
-  const min=Math.min(...h);
-  const max=Math.max(...h);
+  const w=ctx.canvas.width=ctx.canvas.clientWidth;
+  const h=ctx.canvas.height=ctx.canvas.clientHeight;
+  ctx.clearRect(0,0,w,h);
+  const data=c.history.slice(-MAX_POINTS);
+  if(data.length<2)return;
+  let min=Math.min(...data),max=Math.max(...data);
   const pad=(max-min)*0.2||1;
-  const lo=min-pad, hi=max+pad;
-
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  ctx.strokeStyle="#222";
-  ctx.strokeRect(0,0,canvas.width,canvas.height);
-
+  min-=pad;max+=pad;
+  const x=i=>i/(MAX_POINTS-1)*w;
+  const y=v=>h-(v-min)/(max-min)*h;
+  ctx.strokeStyle='var(--blue)';
   ctx.beginPath();
-  ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue("--blue");
-  h.forEach((p,i)=>{
-    const x=i/(MAX_POINTS-1)*canvas.width;
-    const y=canvas.height-(p-lo)/(hi-lo)*canvas.height;
-    if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);
-  });
+  data.forEach((v,i)=>{i?ctx.lineTo(x(i),y(v)):ctx.moveTo(x(i),y(v))});
   ctx.stroke();
-
   // current price line
-  const y=canvas.height-(c.price-lo)/(hi-lo)*canvas.height;
-  ctx.strokeStyle="#888";
-  ctx.beginPath();
-  ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();
-
-  // buy points (fixed vertical)
-  ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue("--green");
+  ctx.strokeStyle='#fff2';
+  ctx.beginPath();ctx.moveTo(0,y(c.price));ctx.lineTo(w,y(c.price));ctx.stroke();
+  // buy points
+  ctx.fillStyle='var(--green)';
   c.buys.forEach(b=>{
-    const i=h.length-(c.history.length-b.idx);
-    if(i>=0 && i<h.length){
-      const x=i/(MAX_POINTS-1)*canvas.width;
-      const yb=canvas.height-(b.price-lo)/(hi-lo)*canvas.height;
+    const i=data.length-(c.history.length-b.idx);
+    if(i>=0&&i<MAX_POINTS){
       ctx.beginPath();
-      ctx.arc(x,yb,4,0,Math.PI*2);
+      ctx.arc(x(i),y(b.price),4,0,Math.PI*2);
       ctx.fill();
     }
   });
+};
 
-  const g=latent(c);
-  $("#chart-info").innerHTML=`
-    <div>${c.name}</div>
-    <div>${fmt(c.price)}</div>
-    <div>${fmt(c.averagePrice||0)}</div>
-    <div>${c.shares}</div>
-    <div class="${g>=0?"positive":"negative"}">${fmt(g)}</div>
-  `;
-}
-
-/* ===================== STATS ===================== */
-function renderStats(){
-  const cont=$("#content");
-  cont.innerHTML="";
-  const table=document.createElement("table");
-  table.innerHTML=`
-    <thead>
-      <tr>
-        <th>Entreprise</th>
-        <th>Gain réalisé</th>
-        <th>Gain latent</th>
-        <th>Gain total</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  `;
-  const body=table.querySelector("tbody");
-  [...state.companies]
-    .sort((a,b)=>(b.realizedGain+latent(b))-(a.realizedGain+latent(a)))
-    .forEach(c=>{
-      const tr=document.createElement("tr");
-      const total=c.realizedGain+latent(c);
-      tr.innerHTML=`
-        <td>${c.name}</td>
-        <td class="${c.realizedGain>=0?"positive":"negative"}">${fmt(c.realizedGain)}</td>
-        <td class="${latent(c)>=0?"positive":"negative"}">${fmt(latent(c))}</td>
-        <td class="${total>=0?"positive":"negative"}">${fmt(total)}</td>
-      `;
-      body.appendChild(tr);
-    });
-  cont.appendChild(table);
-}
-
-/* ===================== AI ===================== */
-function analyze(c){
-  const h=c.history.slice(-10);
-  if(h.length<2)return{action:"ATTENDRE",text:"Historique insuffisant"};
-  const slope=(h[h.length-1]-h[0])/h[0];
-  const momentum=h[h.length-1]-h[h.length-2];
-  let action="ATTENDRE";
-  if(slope>0.002 && momentum>0)action="ACHETER";
-  if(slope<-0.002 && momentum<0 && c.shares>0)action="VENDRE";
-  return{
-    action,
-    slope,
-    momentum,
-    risk:Math.min(1,c.volatility*100),
-    conf:(0.5+Math.min(Math.abs(slope)*20,0.4))
-  };
-}
-
-function renderAI(){
-  const cont=$("#content");
-  cont.innerHTML="";
+const renderChartInfo=()=>{
   const c=state.companies[state.selected];
-  const a=analyze(c);
+  $('chartInfo').innerHTML=`
+    <div>${c.name}</div>
+    <div>${c.price.toFixed(2)} €</div>
+    <div>Moyenne ${c.averagePrice.toFixed(2)} €</div>
+    <div>${c.shares} parts</div>
+    <div class="${latentGain(c)>=0?'green':'red'}">${latentGain(c).toFixed(2)} €</div>`;
+};
 
-  const box=document.createElement("div");
-  box.className="ai-grid";
-  box.innerHTML=`
-    <div class="ai-box">
-      <h3>Analyse IA</h3>
-      <p>Suggestion : <b>${a.action}</b></p>
-      <p>Hausse estimée : ${(a.slope*100).toFixed(2)} %</p>
-      <p>Intervalle de confiance : ${(a.conf*100).toFixed(0)} %</p>
-      <p>Score de risque : ${(a.risk*100).toFixed(0)} %</p>
-      <p>Momentum : ${a.momentum.toFixed(4)}</p>
-      <p>Volatilité : ${(c.volatility*100).toFixed(2)} %</p>
-      <p style="color:var(--muted)">Analyse basée sur micro-tendance et dynamique récente.</p>
-    </div>
-    <div class="ai-box">
-      <h3>Trading automatique</h3>
-      <div class="toggle">
-        <input type="checkbox" ${state.auto?"checked":""}>
-        <span>Activer l’IA</span>
-      </div>
-    </div>
-  `;
-  const toggle=box.querySelector("input");
-  toggle.onchange=()=>{state.auto=toggle.checked;save();};
-  cont.appendChild(box);
-}
+const renderStats=()=>{
+  const t=$('statsTable');
+  t.innerHTML='<tr><th>Entreprise</th><th>Réalisé</th><th>Latent</th><th>Total</th></tr>';
+  [...state.companies]
+    .map(c=>({
+      c,
+      latent:latentGain(c),
+      total:c.realizedGain+latentGain(c)
+    }))
+    .sort((a,b)=>b.total-a.total)
+    .forEach(o=>{
+      t.innerHTML+=`
+        <tr>
+          <td>${o.c.name}</td>
+          <td>${o.c.realizedGain.toFixed(2)}</td>
+          <td>${o.latent.toFixed(2)}</td>
+          <td>${o.total.toFixed(2)}</td>
+        </tr>`;
+    });
+};
 
-/* ===================== TABS ===================== */
-function renderTab(){
-  document.querySelectorAll(".tab").forEach(t=>{
-    t.classList.toggle("active",t.dataset.tab===currentTab);
-  });
-  if(currentTab==="chart")renderChart();
-  if(currentTab==="stats")renderStats();
-  if(currentTab==="ai")renderAI();
-}
-let currentTab="chart";
-document.querySelectorAll(".tab").forEach(t=>{
-  t.onclick=()=>{currentTab=t.dataset.tab;renderTab();};
+const aiAnalyze=()=>{
+  const c=state.companies[state.selected];
+  const h=c.history.slice(-10);
+  if(h.length<2)return null;
+  const slope=h[h.length-1]-h[0];
+  const vol=c.volatility*100;
+  const momentum=slope/h[0]*100;
+  let action='ATTENDRE';
+  if(momentum>0.3&&vol<1.5)action='ACHETER';
+  if(momentum<-0.3)action='VENDRE';
+  return {action,momentum,vol};
+};
+
+const renderAI=()=>{
+  const a=aiAnalyze();
+  if(!a)return;
+  $('aiSuggestion').textContent='Suggestion : '+a.action;
+  $('aiDetails').textContent=
+    `Momentum ${a.momentum.toFixed(2)}% | Volatilité ${a.vol.toFixed(2)}%`;
+};
+
+const autoTrade=()=>{
+  if(!state.auto)return;
+  const a=aiAnalyze();
+  if(!a)return;
+  const c=state.companies[state.selected];
+  if(a.action==='ACHETER')buy(c);
+  if(a.action==='VENDRE')sell(c);
+};
+
+const renderAll=()=>{
+  renderPortfolio();
+  renderList();
+  drawChart();
+  renderChartInfo();
+  renderStats();
+  renderAI();
+};
+
+$('search').oninput=renderList;
+$('autoToggle').checked=state.auto;
+$('autoToggle').onchange=e=>{state.auto=e.target.checked;save()};
+
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    ['chart','stats','ai'].forEach(id=>{
+      $(id+'Tab').style.display=id===t.dataset.tab?'block':'none';
+    });
+  };
 });
 
-/* ===================== LOOP ===================== */
-function tick(){
-  state.companies.forEach(c=>{
-    const rnd=(Math.random()-0.5)*c.volatility*c.price*2;
-    c.price=Math.max(0.01,c.price+rnd);
-    c.history.push(c.price);
-  });
-
-  if(state.auto){
-    state.companies.forEach(c=>{
-      const a=analyze(c);
-      if(a.action==="ACHETER" && state.capital>=c.price){
-        state.capital-=c.price;
-        c.averagePrice=(c.averagePrice*c.shares+c.price)/(c.shares+1);
-        c.shares++;
-        c.buys.push({price:c.price,idx:c.history.length-1});
-      }
-      if(a.action==="VENDRE" && c.shares>0){
-        state.capital+=c.price;
-        c.shares--;
-        c.realizedGain+=c.price-c.averagePrice;
-        if(c.shares===0)c.averagePrice=0;
-      }
-    });
-  }
-
-  renderPortfolio();
-  renderCompanies();
-  if(currentTab==="chart")draw();
+setInterval(()=>{
+  updatePrices();
+  autoTrade();
+  renderAll();
   save();
-}
+},TICK);
 
-/* ===================== INIT ===================== */
-window.addEventListener("resize",resize);
-$("#search").oninput=renderCompanies;
-renderPortfolio();
-renderCompanies();
-renderTab();
-setInterval(tick,UPDATE_MS);
+renderAll();
 
 })();
 </script>
