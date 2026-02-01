@@ -5,15 +5,13 @@
 <title>Simulateur de Trading</title>
 
 <style>
-/* ================= THEME GLOBAL ================= */
+/* ================= THEME ================= */
 body {
     margin: 0;
     font-family: Inter, Arial, sans-serif;
     background: #0e1117;
     color: #e5e7eb;
 }
-
-h3 { margin: 0 0 8px 0; }
 
 .container {
     display: flex;
@@ -72,7 +70,7 @@ h3 { margin: 0 0 8px 0; }
     margin-bottom: 14px;
 }
 
-/* ================= STATS HEADER ================= */
+/* ================= TOP STATS ================= */
 .top-stats {
     display: flex;
     justify-content: space-between;
@@ -92,12 +90,11 @@ h3 { margin: 0 0 8px 0; }
 .company {
     display: grid;
     grid-template-columns: 1fr 90px 70px 110px 150px;
-    align-items: center;
     gap: 10px;
+    align-items: center;
     padding: 10px;
     border-radius: 10px;
     cursor: pointer;
-    transition: background 0.15s ease;
 }
 
 .company:hover {
@@ -119,8 +116,8 @@ button {
     border: none;
     border-radius: 10px;
     padding: 8px 14px;
-    cursor: pointer;
     font-weight: 700;
+    cursor: pointer;
     transition: all 0.12s ease;
 }
 
@@ -148,7 +145,7 @@ canvas {
     border-radius: 14px;
 }
 
-/* ================= TABLE STATS ================= */
+/* ================= STATS TABLE ================= */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -188,56 +185,43 @@ td:first-child, th:first-child {
 
 <script>
 /* ================= CONFIG ================= */
-const STORAGE_KEY = "trading_sim_full";
+const STORAGE_KEY = "trading_sim_final";
 let capital = 2000;
 let selected = 0;
 
-/* ================= ENTREPRISES (20+) ================= */
+/* ================= ENTREPRISES (30) ================= */
 const companiesDefault = [
-    // Tech
     {name:"AlphaTech", price:50, vol:0.004},
     {name:"NanoSoft", price:72, vol:0.004},
     {name:"CloudNet", price:95, vol:0.004},
     {name:"RoboTech", price:112, vol:0.005},
     {name:"MetaWorld", price:90, vol:0.006},
-
-    // Finance
     {name:"FinCorp", price:82, vol:0.003},
     {name:"PayLink", price:75, vol:0.004},
     {name:"SafeBank", price:60, vol:0.002},
     {name:"Investix", price:68, vol:0.003},
-
-    // Énergie / Industrie
     {name:"GreenEnergy", price:42, vol:0.003},
     {name:"EnergyPlus", price:48, vol:0.003},
     {name:"AeroSpace", price:120, vol:0.003},
     {name:"AutoDrive", price:55, vol:0.004},
     {name:"SteelCore", price:38, vol:0.002},
-
-    // Santé / Bio
     {name:"MedLife", price:68, vol:0.002},
     {name:"BioGen", price:60, vol:0.003},
     {name:"PharmaX", price:52, vol:0.003},
     {name:"HealthPlus", price:45, vol:0.002},
-
-    // Consommation
     {name:"Foodies", price:30, vol:0.002},
     {name:"RetailX", price:25, vol:0.005},
     {name:"AgriCore", price:28, vol:0.002},
     {name:"Oceanic", price:34, vol:0.002},
-
-    // Transport / Space
     {name:"SpaceNova", price:140, vol:0.004},
     {name:"SkyWays", price:58, vol:0.003},
-
-    // Crypto (très volatil)
     {name:"CryptoLite", price:60, vol:0.02},
     {name:"BlockOne", price:45, vol:0.025},
     {name:"ChainX", price:70, vol:0.03},
     {name:"DeFiPlus", price:85, vol:0.035},
-    {name:"CryptoX", price:100, vol:0.06} // la plus folle
+    {name:"CryptoWave", price:40, vol:0.04},
+    {name:"CryptoX", price:100, vol:0.06}
 ];
-
 
 let companies = [];
 
@@ -266,12 +250,11 @@ function load() {
 }
 load();
 
-/* ================= MARKET ENGINE ================= */
+/* ================= MARKET ================= */
 function updatePrices() {
     companies.forEach(c => {
         const rnd = (Math.random() - 0.5) * c.vol;
-        c.price *= (1 + rnd);
-        c.price = Math.max(0.01, c.price);
+        c.price = Math.max(0.01, c.price * (1 + rnd));
         c.history.push(c.price);
         if (c.history.length > 600) c.history.shift();
     });
@@ -286,7 +269,13 @@ function buy(i) {
         c.avg = (c.avg * c.shares + c.price) / (c.shares + 1);
         c.shares++;
         c.totalBuys++;
-        c.buys.push(c.history.length - 1);
+
+        // IMPORTANT : on stocke le PRIX D'ACHAT
+        c.buys.push({
+            index: c.history.length - 1,
+            price: c.price
+        });
+
         save();
     }
 }
@@ -304,7 +293,7 @@ function sell(i) {
 
 /* ================= UI ================= */
 function renderTrading() {
-    const view = document.getElementById("tradingView");
+    const view = tradingView;
     view.innerHTML = "";
 
     const totalValue = capital + companies.reduce((s,c)=>s+c.shares*c.price,0);
@@ -334,11 +323,10 @@ function renderTrading() {
 }
 
 /* ================= CHART ================= */
-const canvas = document.getElementById("chart");
-const ctx = canvas.getContext("2d");
+const ctx = chart.getContext("2d");
 
 function drawChart() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.clearRect(0,0,chart.width,chart.height);
     const c = companies[selected];
     const windowSize = 60;
     const data = c.history.slice(-windowSize);
@@ -346,37 +334,43 @@ function drawChart() {
     let min = Math.min(...data);
     let max = Math.max(...data);
     const margin = (max - min) * 0.15 || 1;
-    min -= margin; max += margin;
+    min -= margin;
+    max += margin;
 
     const clamp = v => Math.max(min, Math.min(max, v));
 
+    // Courbe
     ctx.strokeStyle = "#3b82f6";
+    ctx.lineWidth = 2;
     ctx.beginPath();
     data.forEach((p,i)=>{
-        const x = i/(windowSize-1)*canvas.width;
-        const y = canvas.height - (clamp(p)-min)/(max-min)*canvas.height;
+        const x = i/(windowSize-1)*chart.width;
+        const y = chart.height - (clamp(p)-min)/(max-min)*chart.height;
         i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
     });
     ctx.stroke();
 
+    // Points d'achat (FIXES)
     ctx.fillStyle = "#22c55e";
-    c.buys.forEach(b=>{
-        if(b >= c.history.length-windowSize){
-            const i = b-(c.history.length-windowSize);
-            const p = data[i];
-            const x = i/(windowSize-1)*canvas.width;
-            const y = canvas.height - (clamp(p)-min)/(max-min)*canvas.height;
+    const start = c.history.length - windowSize;
+
+    c.buys.forEach(buy=>{
+        if (buy.index >= start) {
+            const i = buy.index - start;
+            const x = i/(windowSize-1)*chart.width;
+            const y = chart.height - (clamp(buy.price)-min)/(max-min)*chart.height;
             ctx.beginPath();
             ctx.arc(x,y,4,0,Math.PI*2);
             ctx.fill();
         }
     });
 
-    const y = canvas.height - (clamp(c.price)-min)/(max-min)*canvas.height;
+    // Ligne prix actuel
+    const y = chart.height - (clamp(c.price)-min)/(max-min)*chart.height;
     ctx.strokeStyle = "#ffffff55";
     ctx.beginPath();
     ctx.moveTo(0,y);
-    ctx.lineTo(canvas.width,y);
+    ctx.lineTo(chart.width,y);
     ctx.stroke();
 }
 
@@ -428,17 +422,15 @@ tabStats.onclick = () => {
     tabTrading.classList.remove("active");
 };
 
-/* ================= LOOP ================= */
-/* ===== TIMING ===== */
-setInterval(updatePrices, 300); // marché rapide
+/* ================= LOOPS ================= */
+setInterval(updatePrices, 300);
 
-setInterval(() => {
+setInterval(()=>{
     renderTrading();
     renderDetails();
     renderStats();
     drawChart();
-}, 480); // graphique + UI légèrement plus lent
-
+},480);
 </script>
 
 </body>
