@@ -406,13 +406,16 @@ tabStats.onclick = () => {
 };
 
 /* ================= LOOP ================= */
-setInterval(()=>{
-    updatePrices();
+/* ===== TIMING ===== */
+setInterval(updatePrices, 300); // marché rapide
+
+setInterval(() => {
     renderTrading();
     renderDetails();
     renderStats();
     drawChart();
-},300);
+}, 480); // graphique + UI légèrement plus lent
+
 </script>
 
 </body>
