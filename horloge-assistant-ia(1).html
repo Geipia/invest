@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Trading Simulator</title>
+
+<style>
+:root{
+  --bg:#0b0f14;
+  --panel:#121821;
+  --panel2:#161d29;
+  --border:#273040;
+  --green:#2ea043;
+  --red:#f85149;
+  --blue:#58a6ff;
+  --text:#e6e6e6;
+}
+
+body{
+  margin:0;
+  font-family:Segoe UI, Arial, sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+header{
+  padding:15px;
+  text-align:center;
+  font-size:22px;
+  font-weight:bold;
+  background:linear-gradient(90deg,#1f6feb,#238636);
+}
+
+nav{
+  display:flex;
+  background:var(--panel);
+}
+
+nav button{
+  flex:1;
+  padding:12px;
+  background:none;
+  border:none;
+  color:white;
+  font-size:15px;
+  cursor:pointer;
+}
+
+nav button.active{
+  background:var(--panel2);
+  border-bottom:3px solid var(--green);
+}
+
+.container{
+  display:flex;
+}
+
+.left{
+  width:42%;
+  padding:15px;
+  height:calc(100vh - 120px);
+  overflow-y:auto;
+}
+
+.right{
+  width:58%;
+  padding:15px;
+}
+
+.card{
+  background:var(--panel);
+  padding:15px;
+  margin-bottom:15px;
+  border-radius:10px;
+  border:1px solid var(--border);
+}
+
+.company{
+  padding:12px;
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+}
+
+.company:hover{
+  background:var(--panel2);
+}
+
+.company.active{
+  background:#1f2937;
+  border-left:4px solid var(--blue);
+}
+
+button.trade{
+  padding:8px 14px;
+  font-weight:600;
+  border-radius:8px;
+  border:none;
+  cursor:pointer;
+  transition:0.15s;
+  box-shadow:0 4px 10px rgba(0,0,0,0.3);
+}
+
+button.buy{
+  background:linear-gradient(135deg,#2ea043,#238636);
+  color:white;
+}
+
+button.sell{
+  background:linear-gradient(135deg,#f85149,#da3633);
+  color:white;
+}
+
+button.trade:hover{
+  transform:scale(1.05);
+  filter:brightness(1.1);
+}
+
+.green{color:var(--green);}
+.red{color:var(--red);}
+
+canvas{
+  background:#0b1220;
+  border:1px solid var(--border);
+  border-radius:8px;
+}
+</style>
+</head>
+
+<body>
+
+<header>📊 Trading Simulator</header>
+
+<nav>
+  <button id="tabTrade" class="active" onclick="showTab('trade')">Trading</button>
+  <button id="tabStats" onclick="showTab('stats')">Stats</button>
+</nav>
+
+<div class="container">
+
+<div class="left">
+
+<div id="tradeTab">
+  <div class="card">
+    💰 Capital : <strong id="money"></strong> €<br>
+    📈 Valeur totale : <strong id="total"></strong> €<br>
+    🧮 Gain global : <strong id="globalGain"></strong> €
+  </div>
+
+  <div class="card" id="companies"></div>
+</div>
+
+<div id="statsTab" style="display:none">
+  <div class="card" id="stats"></div>
+</div>
+
+</div>
+
+<div class="right">
+  <div class="card">
+    <h3 id="graphName"></h3>
+    <canvas id="chart" width="760" height="360"></canvas>
+    <div id="details"></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+let money = 2000;
+let selected = 0;
+
+const companies = [
+ {name:"TechNova",price:120,vol:2},
+ {name:"GreenFood",price:80,vol:1},
+ {name:"HealthCorp",price:95,vol:1.3},
+ {name:"AutoDrive",price:60,vol:2.4},
+ {name:"CryptoX",price:50,vol:6},
+ {name:"CloudNet",price:130,vol:1.8},
+ {name:"GameForge",price:65,vol:3},
+ {name:"RoboTech",price:140,vol:2.8},
+ {name:"MediaWave",price:75,vol:1.6},
+ {name:"BioFuture",price:85,vol:2.1}
+].map(c=>({
+  ...c,
+  shares:0,
+  avg:0,
+  history:[],
+  buys:[],
+  realized:0,
+  totalBought:0
+}));
+
+const moneyEl = document.getElementById("money");
+const totalEl = document.getElementById("total");
+const globalGainEl = document.getElementById("globalGain");
+const companiesEl = document.getElementById("companies");
+const statsEl = document.getElementById("stats");
+const detailsEl = document.getElementById("details");
+const ctx = document.getElementById("chart").getContext("2d");
+
+function save(){
+  localStorage.setItem("tradeSave", JSON.stringify({money, companies}));
+}
+
+function load(){
+  const s = localStorage.getItem("tradeSave");
+  if(s){
+    const d = JSON.parse(s);
+    money = d.money;
+    d.companies.forEach((c,i)=>companies[i]=c);
+  }
+}
+
+function updateUI(){
+  let total = money;
+  let global = 0;
+
+  companiesEl.innerHTML = "<h3>🏢 Entreprises</h3>";
+
+  companies.forEach((c,i)=>{
+    const unreal = (c.price - c.avg) * c.shares;
+    total += c.price * c.shares;
+    global += c.realized + unreal;
+
+    companiesEl.innerHTML += `
+    <div class="company ${i===selected?'active':''}" onclick="selectCompany(${i})">
+      <strong>${c.name}</strong><br>
+      ${c.price.toFixed(2)} € • Parts ${c.shares} •
+      <span class="${unreal>=0?'green':'red'}">${unreal.toFixed(2)} €</span><br><br>
+      <button class="trade buy" onclick="event.stopPropagation(); buy(${i})">Acheter</button>
+      <button class="trade sell" onclick="event.stopPropagation(); sell(${i})">Vendre</button>
+    </div>`;
+  });
+
+  moneyEl.textContent = money.toFixed(2);
+  totalEl.textContent = total.toFixed(2);
+  globalGainEl.textContent = global.toFixed(2);
+
+  updateStats();
+  save();
+}
+
+function updateStats(){
+  statsEl.innerHTML = "<h3>📊 Stats détaillées</h3>";
+  companies.forEach(c=>{
+    const unreal = (c.price - c.avg) * c.shares;
+    const total = c.realized + unreal;
+
+    statsEl.innerHTML += `
+    <div class="company">
+      <strong>${c.name}</strong><br>
+      Parts achetées : ${c.totalBought}<br>
+      Gain réalisé : <span class="${c.realized>=0?'green':'red'}">${c.realized.toFixed(2)} €</span><br>
+      Gain latent : <span class="${unreal>=0?'green':'red'}">${unreal.toFixed(2)} €</span><br>
+      <strong>Total apporté :</strong>
+      <span class="${total>=0?'green':'red'}">${total.toFixed(2)} €</span>
+    </div>`;
+  });
+}
+
+function buy(i){
+  const c = companies[i];
+  if(money >= c.price){
+    money -= c.price;
+    c.avg = (c.avg*c.shares + c.price)/(c.shares+1);
+    c.shares++;
+    c.totalBought++;
+    c.buys.push(c.history.length);
+    updateUI();
+  }
+}
+
+function sell(i){
+  const c = companies[i];
+  if(c.shares > 0){
+    money += c.price;
+    c.realized += (c.price - c.avg);
+    c.shares--;
+    if(c.shares === 0) c.avg = 0;
+    updateUI();
+  }
+}
+
+function updatePrices(){
+  companies.forEach(c=>{
+    c.price = Math.max(1, c.price + (Math.random()*c.vol*4 - c.vol*2));
+    c.history.push(c.price);
+    if(c.history.length > 80){
+      c.history.shift();
+      c.buys = c.buys.map(b=>b-1).filter(b=>b>=0);
+    }
+  });
+  drawGraph();
+  updateUI();
+}
+
+function selectCompany(i){
+  selected = i;
+  document.getElementById("graphName").textContent = companies[i].name;
+  showDetails();
+  drawGraph();
+}
+
+function showDetails(){
+  const c = companies[selected];
+  const unreal = (c.price - c.avg) * c.shares;
+  detailsEl.innerHTML = `
+    <hr>
+    Prix moyen : ${c.avg.toFixed(2)} €<br>
+    Prix actuel : ${c.price.toFixed(2)} €<br>
+    Parts détenues : ${c.shares}<br>
+    Gain latent : ${unreal.toFixed(2)} €
+  `;
+}
+
+/* GRAPH TOUJOURS VISIBLE */
+function drawGraph(){
+  const c = companies[selected];
+  ctx.clearRect(0,0,760,360);
+
+  if(c.history.length < 2) return;
+
+  let min = Math.min(...c.history);
+  let max = Math.max(...c.history);
+  const padding = (max - min) * 0.1 || 1;
+  min -= padding;
+  max += padding;
+  const range = max - min;
+
+  ctx.beginPath();
+  c.history.forEach((p,i)=>{
+    const x = i * (760 / (c.history.length-1));
+    const y = 340 - ((p - min) / range) * 300;
+    if(i===0) ctx.moveTo(x,y);
+    else ctx.lineTo(x,y);
+  });
+
+  ctx.strokeStyle = "#58a6ff";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = "#2ea043";
+  c.buys.forEach(b=>{
+    if(c.history[b]){
+      const x = b * (760 / (c.history.length-1));
+      const y = 340 - ((c.history[b] - min) / range) * 300;
+      ctx.beginPath();
+      ctx.arc(x,y,4,0,Math.PI*2);
+      ctx.fill();
+    }
+  });
+}
+
+function showTab(t){
+  document.getElementById("tradeTab").style.display = t==="trade"?"block":"none";
+  document.getElementById("statsTab").style.display = t==="stats"?"block":"none";
+  document.getElementById("tabTrade").classList.toggle("active",t==="trade");
+  document.getElementById("tabStats").classList.toggle("active",t==="stats");
+}
+
+load();
+selectCompany(0);
+updateUI();
+setInterval(updatePrices,300);
+</script>
+
+</body>
+</html>
