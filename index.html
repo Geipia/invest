@@ -12,9 +12,14 @@
 *{box-sizing:border-box;font-family:Inter,Arial,sans-serif}
 body{margin:0;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden}
 .sidebar{width:360px;background:var(--panel);display:flex;flex-direction:column}
-.header{position:sticky;top:0;background:var(--panel);padding:12px;border-bottom:1px solid #222}
+.header{position:sticky;top:0;background:var(--panel);padding:12px;border-bottom:1px solid #222;z-index:2}
 .header .row{display:flex;justify-content:space-between;margin:4px 0}
 .green{color:var(--green)} .red{color:var(--red)}
+.search{padding:10px;border-bottom:1px solid #222}
+.search input{
+  width:100%;padding:8px;border-radius:8px;
+  border:none;background:#0b1020;color:#fff
+}
 .list{overflow:auto;flex:1}
 .company{padding:10px;border-bottom:1px solid #222;cursor:pointer}
 .company.active{background:var(--card)}
@@ -38,9 +43,7 @@ body{margin:0;background:var(--bg);color:var(--text);display:flex;height:100vh;o
 canvas{background:#0b1020;border-radius:12px;max-width:100%;max-height:100%}
 .details{display:flex;justify-content:space-around;margin-top:8px}
 .stats,.ai{padding:14px;overflow:auto;width:100%}
-.ai h2{margin-top:0}
 .ai-card{background:var(--card);padding:12px;border-radius:12px;margin-bottom:12px}
-.ai strong{font-size:18px}
 </style>
 </head>
 <body>
@@ -50,6 +53,11 @@ canvas{background:#0b1020;border-radius:12px;max-width:100%;max-height:100%}
     <div class="row"><span>Portefeuille</span><span id="portfolio"></span></div>
     <div class="row"><span>Gain global</span><span id="globalGain"></span></div>
   </div>
+
+  <div class="search">
+    <input id="search" placeholder="Rechercher une entreprise">
+  </div>
+
   <div class="list" id="companyList"></div>
 </div>
 
@@ -80,7 +88,6 @@ canvas{background:#0b1020;border-radius:12px;max-width:100%;max-height:100%}
 
   <div class="view" id="ai">
     <div class="ai">
-      <h2>Conseiller IA</h2>
       <div class="ai-card" id="aiMain"></div>
       <div class="ai-card" id="aiList"></div>
     </div>
@@ -104,14 +111,13 @@ const NAMES=[
 let state=JSON.parse(localStorage.getItem("tradingState"))||{
   capital:2000,
   companies:NAMES.map(n=>({
-    name:n,
-    price:50+Math.random()*100,
-    vol:0.5+Math.random()*1.5,
+    name:n,price:50+Math.random()*100,vol:0.5+Math.random()*1.5,
     shares:0,avg:0,history:[],buys:[],realized:0
   }))
 };
 
 let selected=0;
+let search="";
 const MAX_POINTS=60;
 const $=id=>document.getElementById(id);
 const fmt=v=>v.toFixed(2)+" €";
@@ -119,13 +125,12 @@ const save=()=>localStorage.setItem("tradingState",JSON.stringify(state));
 
 function updatePrices(){
   state.companies.forEach(c=>{
-    let delta=(Math.random()-0.5)*c.vol;
-    c.price=Math.max(0.1,c.price+delta);
+    let d=(Math.random()-0.5)*c.vol;
+    c.price=Math.max(0.1,c.price+d);
     c.history.push(c.price);
     if(c.history.length>MAX_POINTS)c.history.shift();
   });
-  render();
-  save();
+  render();save();
 }
 
 function buy(i){
@@ -137,61 +142,29 @@ function buy(i){
     c.buys.push({price:c.price,index:c.history.length-1});
   }
 }
-
 function sell(i){
   let c=state.companies[i];
   if(c.shares>0){
     state.capital+=c.price;
     c.realized+=(c.price-c.avg);
     c.shares--;
-    if(c.shares===0)c.avg=0;
+    if(!c.shares)c.avg=0;
   }
-}
-
-function trendScore(c){
-  if(c.history.length<10)return 0;
-  let a=c.history.slice(-5).reduce((a,b)=>a+b,0)/5;
-  let b=c.history.slice(-10,-5).reduce((a,b)=>a+b,0)/5;
-  return (a-b)/b;
-}
-
-function aiAnalysis(){
-  let list=[...state.companies].map(c=>{
-    let t=trendScore(c);
-    return {...c,score:t};
-  }).sort((a,b)=>b.score-a.score);
-
-  let best=list[0];
-  let worst=list[list.length-1];
-
-  $("aiMain").innerHTML=`
-    <strong>Suggestion principale</strong><br><br>
-    ${best.name} → <span class="green">Probabilité haussière</span><br>
-    Tendance estimée : ${(best.score*100).toFixed(2)}%<br><br>
-    ${best.score>0.01?"Recommandation : ACHETER":"Observation prudente"}
-  `;
-
-  $("aiList").innerHTML="<strong>Classement prédictif (court terme)</strong><br><br>"+
-    list.slice(0,10).map(c=>
-      `${c.name} :
-      <span class="${c.score>=0?'green':'red'}">
-      ${(c.score*100).toFixed(2)}%
-      </span>`
-    ).join("<br>");
 }
 
 function renderSidebar(){
   $("companyList").innerHTML="";
-  state.companies.forEach((c,i)=>{
-    let latent=(c.price-c.avg)*c.shares;
-    let div=document.createElement("div");
-    div.className="company"+(i===selected?" active":"");
-    div.onclick=()=>{selected=i;render()};
-    div.innerHTML=`
-      <div class="top">
-        <span>${c.name}</span>
-        <span>${fmt(c.price)}</span>
-      </div>
+  [...state.companies]
+    .filter(c=>c.name.toLowerCase().includes(search))
+    .sort((a,b)=>b.shares-a.shares)
+    .forEach(c=>{
+      let i=state.companies.indexOf(c);
+      let latent=(c.price-c.avg)*c.shares;
+      let div=document.createElement("div");
+      div.className="company"+(i===selected?" active":"");
+      div.onclick=()=>{selected=i;render()};
+      div.innerHTML=`
+      <div class="top"><span>${c.name}</span><span>${fmt(c.price)}</span></div>
       <div class="bottom">
         <span>${c.shares} parts</span>
         <span class="${latent>=0?"green":"red"}">${fmt(latent)}</span>
@@ -200,97 +173,97 @@ function renderSidebar(){
           <button class="sell">−</button>
         </div>
       </div>`;
-    div.querySelector(".buy").onclick=e=>{e.stopPropagation();buy(i)};
-    div.querySelector(".sell").onclick=e=>{e.stopPropagation();sell(i)};
-    $("companyList").appendChild(div);
-  });
+      div.querySelector(".buy").onclick=e=>{e.stopPropagation();buy(i)};
+      div.querySelector(".sell").onclick=e=>{e.stopPropagation();sell(i)};
+      $("companyList").appendChild(div);
+    });
 }
 
 function renderHeader(){
-  let portfolio=state.capital,realized=0,latent=0;
+  let p=state.capital,r=0,l=0;
   state.companies.forEach(c=>{
-    portfolio+=c.price*c.shares;
-    realized+=c.realized;
-    latent+=(c.price-c.avg)*c.shares;
+    p+=c.price*c.shares;
+    r+=c.realized;
+    l+=(c.price-c.avg)*c.shares;
   });
   $("capital").textContent=fmt(state.capital);
-  $("portfolio").textContent=fmt(portfolio);
-  let g=realized+latent;
-  $("globalGain").textContent=fmt(g);
-  $("globalGain").className=g>=0?"green":"red";
+  $("portfolio").textContent=fmt(p);
+  $("globalGain").textContent=fmt(r+l);
+  $("globalGain").className=r+l>=0?"green":"red";
 }
 
 function renderDetails(){
   let c=state.companies[selected];
-  let latent=(c.price-c.avg)*c.shares;
+  let l=(c.price-c.avg)*c.shares;
   $("details").innerHTML=`
-    <span>Prix: ${fmt(c.price)}</span>
-    <span>Moyen: ${fmt(c.avg)}</span>
-    <span>Parts: ${c.shares}</span>
-    <span class="${latent>=0?"green":"red"}">Latent: ${fmt(latent)}</span>`;
+    <span>Prix ${fmt(c.price)}</span>
+    <span>Moyen ${fmt(c.avg)}</span>
+    <span>Parts ${c.shares}</span>
+    <span class="${l>=0?"green":"red"}">${fmt(l)}</span>`;
 }
 
 function renderChart(){
   const ctx=$("chart").getContext("2d");
   ctx.clearRect(0,0,800,400);
-  let c=state.companies[selected];
-  let h=c.history;if(h.length<2)return;
+  let c=state.companies[selected],h=c.history;
+  if(h.length<2)return;
   let min=Math.min(...h),max=Math.max(...h);
   let pad=(max-min)*0.1||1;min-=pad;max+=pad;
   let step=800/(MAX_POINTS-1);
-
   ctx.strokeStyle="#3498db";ctx.beginPath();
   h.forEach((p,i)=>{
-    let x=i*step;
-    let y=400-(p-min)/(max-min)*400;
+    let x=i*step,y=400-(p-min)/(max-min)*400;
     i?ctx.lineTo(x,y):ctx.moveTo(x,y);
-  });
-  ctx.stroke();
-
+  });ctx.stroke();
+  ctx.strokeStyle="#444";
   let cy=400-(c.price-min)/(max-min)*400;
-  ctx.strokeStyle="#444";ctx.beginPath();
-  ctx.moveTo(0,cy);ctx.lineTo(800,cy);ctx.stroke();
-
+  ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(800,cy);ctx.stroke();
   ctx.fillStyle="#2ecc71";
   c.buys.forEach(b=>{
     if(b.index<h.length){
-      let x=b.index*step;
-      let y=400-(b.price-min)/(max-min)*400;
+      let x=b.index*step,y=400-(b.price-min)/(max-min)*400;
       ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();
     }
   });
 }
 
 function renderStats(){
-  let body=$("statsBody");body.innerHTML="";
-  state.companies.forEach(c=>{
-    let latent=(c.price-c.avg)*c.shares;
-    let total=c.realized+latent;
-    body.innerHTML+=`
-    <tr>
+  $("statsBody").innerHTML=state.companies.map(c=>{
+    let l=(c.price-c.avg)*c.shares,t=c.realized+l;
+    return `<tr>
       <td>${c.name}</td>
       <td class="${c.realized>=0?"green":"red"}">${fmt(c.realized)}</td>
-      <td class="${latent>=0?"green":"red"}">${fmt(latent)}</td>
-      <td class="${total>=0?"green":"red"}">${fmt(total)}</td>
+      <td class="${l>=0?"green":"red"}">${fmt(l)}</td>
+      <td class="${t>=0?"green":"red"}">${fmt(t)}</td>
     </tr>`;
-  });
+  }).join("");
+}
+
+function aiAnalysis(){
+  let ranked=[...state.companies].map(c=>{
+    let s=c.history.length>10?
+      (c.history.slice(-5).reduce((a,b)=>a+b,0)/5-
+       c.history.slice(-10,-5).reduce((a,b)=>a+b,0)/5):0;
+    return {...c,score:s};
+  }).sort((a,b)=>b.score-a.score);
+  $("aiMain").innerHTML=`<b>Suggestion</b><br>${ranked[0].name} haussier`;
+  $("aiList").innerHTML=ranked.slice(0,10).map(c=>
+    `${c.name} <span class="${c.score>=0?"green":"red"}">
+    ${c.score.toFixed(2)}</span>`).join("<br>");
 }
 
 function render(){
-  renderHeader();
-  renderSidebar();
-  renderDetails();
-  renderChart();
-  renderStats();
-  aiAnalysis();
+  renderHeader();renderSidebar();renderDetails();
+  renderChart();renderStats();aiAnalysis();
 }
+
+$("search").oninput=e=>{search=e.target.value.toLowerCase();render()};
 
 document.querySelectorAll(".tabs button").forEach(b=>{
   b.onclick=()=>{
     document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));
     document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
-    b.classList.add("active");
-    $(b.dataset.tab).classList.add("active");
+    b.classList.add("active");$(b.dataset.tab).classList.add("active");
   };
 });
 
